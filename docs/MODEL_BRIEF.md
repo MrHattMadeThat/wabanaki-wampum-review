@@ -99,6 +99,9 @@ together part by part, so **the four parts must be separate objects** with these
   `part_lashing` `"0,1.7,0"`, `part_gum` `"0,2.5,0"`. Keep those unless something reads better.
 - The canoe also appears **upside down** on a rack at the portage, and floating in the bay. It has to look
   right from below.
+- Add one more object, `water_mask`: a single flat-ish strip of faces closing the canoe's opening from gunwale
+  to gunwale, bow to stern. The site makes it invisible and uses it to stop the water surface showing through the
+  floor of a floating canoe. `canoe_plastic` needs one too.
 
 ### `canoe_plastic`
 

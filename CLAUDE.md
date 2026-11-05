@@ -30,7 +30,7 @@ framework, same stack as `../st-george-3d`. Started 2026-11-05. Read `README.md`
   from `props.js`. The Hiawatha Belt is always procedural (38 × 173 = 6,574 beads, matching the reading).
 - Blender: `art/blender/*.py`, run headless with Blender 5.2 (`common.export()` writes the glb, the .blend
   and the manifest entry). `shell_whelk` is the pipeline proof. Codex's brief is `docs/MODEL_BRIEF.md`.
-- Progress is saved in `localStorage` (`open-path-v1`), a convenience only.
+- Progress is saved in `localStorage` (`open-path-v2`), a convenience only.
 
 ## Checking
 

@@ -63,7 +63,7 @@ function hullSkin(h, nu = 64, na = 22) {
   }
   for (let i = 0; i < nu; i++) for (let j = 0; j < na; j++) {
     const a = i * (na + 1) + j, b = a + na + 1;
-    idx.push(a, a + 1, b, b, a + 1, b + 1);
+    idx.push(a, b, a + 1, b, b + 1, a + 1); // wound so normals face outward
   }
   geo.setIndex(idx);
   geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
@@ -148,7 +148,37 @@ export function buildCanoe({ plastic = false, length = 4.8 } = {}) {
     gum.userData.explode = [0, 2.5, 0];
     root.add(gum);
   }
-  return shadowed(root);
+  shadowed(root);
+  root.add(waterMask(h));
+  return root;
+}
+
+// An invisible lid across the canoe's opening. It is drawn just before the water and only writes depth,
+// so the water plane can't show through the floor of a floating canoe. GLB canoes get the same material
+// on any object named `water_mask` (see models.js).
+export function maskMaterial() {
+  return new THREE.MeshBasicMaterial({ colorWrite: false, transparent: true, side: THREE.DoubleSide });
+}
+export function asWaterMask(mesh) {
+  mesh.material = maskMaterial();
+  mesh.renderOrder = -1;
+  mesh.castShadow = mesh.receiveShadow = false;
+  mesh.raycast = () => {};
+  return mesh;
+}
+function waterMask(h, n = 40) {
+  const pos = [], idx = [];
+  for (let i = 0; i <= n; i++) {
+    const a = h.at(i / n, -Math.PI / 2), b = h.at(i / n, Math.PI / 2);
+    pos.push(a.x, a.y, a.z, b.x, b.y, b.z);
+    if (i < n) idx.push(i * 2, i * 2 + 1, i * 2 + 2, i * 2 + 1, i * 2 + 3, i * 2 + 2);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx);
+  const m = asWaterMask(new THREE.Mesh(g));
+  m.name = 'water_mask';
+  return m;
 }
 
 // ------------------------------------------------------------------ the Hiawatha Belt

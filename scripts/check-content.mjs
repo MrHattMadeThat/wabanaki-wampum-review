@@ -37,6 +37,8 @@ for (const s of STATIONS) {
       t.items.forEach((it) => { if (!cs.has(it.answer)) w(`answer ${it.answer} is not a choice`); pickOk(it.pick); });
       const used = new Set(t.items.map((it) => it.answer));
       t.choices.forEach((c) => { if (!used.has(c.id) && !c.why) w(`distractor ${c.id} has no why`); });
+    } else if (t.type === 'mapdrop') {
+      t.items.forEach((it) => { const r = t.regions[it.id]; if (!r?.at || !r.hint) w(`region ${it.id} needs at and hint`); });
     } else if (t.type === 'answer3') {
       if (t.claims.length < 3) w('needs at least three claims');
     } else w('unknown type');

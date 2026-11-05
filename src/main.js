@@ -6,7 +6,7 @@ import { ANCHORS } from './layout.js';
 import { buildWorld, heightAt } from './world.js';
 import { loadManifest, makeModel } from './models.js';
 import { buildStation, buildBeadPath } from './stations.js';
-import { renderTask } from './tasks.js';
+import { renderTask, clearTask } from './tasks.js';
 import './style.css';
 
 const params = new URLSearchParams(location.search);
@@ -77,7 +77,7 @@ const poses = STATIONS.map((s) => {
 
 // ------------------------------------------------------------------ progress
 
-const SAVE = 'open-path-v1';
+const SAVE = 'open-path-v2'; // v2: the map replaced the five-nations question
 function loadSave() {
   try { return JSON.parse(localStorage.getItem(SAVE)) || null; } catch { return null; }
 }
@@ -155,6 +155,7 @@ function showTask(i, k) {
 }
 
 function showStationDone(i) {
+  clearTask();
   const s = STATIONS[i];
   $('count').textContent = '';
   const box = $('task');
@@ -195,6 +196,7 @@ function showLabels(active) {
 
 function goTo(i, instant = false) {
   if (travel) return;
+  clearTask();
   showLabels(-1);
   const from = { eye: camera.position.clone(), look: controls.target.clone(), p: current / (STATIONS.length - 1) };
   const to = poses[i];
@@ -292,6 +294,7 @@ function start(fresh) {
 }
 
 function finish() {
+  clearTask();
   const all = STATIONS.flatMap((s) => beadsFor(s.id));
   const purple = all.filter((b) => b === 'purple').length;
   const total = STATIONS.reduce((n, s) => n + s.tasks.length, 0);
@@ -361,4 +364,4 @@ renderer.setAnimationLoop(() => {
 });
 
 // for checks in the browser console
-window.path = { goTo, arrive, stages, poses, get current() { return current; }, get save() { return save; } };
+window.path = { goTo, arrive, stages, poses, camera, controls, render: () => renderer.render(scene, camera), get current() { return current; }, get save() { return save; } };

@@ -6,6 +6,8 @@
 //   { type: 'item-correct', pick }  a match item was answered correctly
 //   { type: 'option', pick }        a choice option linked to a 3D part was clicked
 
+import { MAP } from './map-data.js';
+
 const el = (tag, cls, text) => {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
@@ -34,11 +36,19 @@ function explain(host, text) {
   host.append(el('p', 'explain', text));
 }
 
+// Some tasks put things outside the panel (the map card). They register a cleanup here.
+let cleanup = null;
+export function clearTask() {
+  cleanup?.();
+  cleanup = null;
+}
+
 // Returns a controller with pick(name): the stage calls it when a 3D part is clicked.
 export function renderTask(host, task, hooks) {
+  clearTask();
   host.replaceChildren();
   host.append(el('p', 'prompt', task.prompt));
-  const kind = { choice, multi, order, match, answer3 }[task.type];
+  const kind = { choice, multi, order, match, answer3, mapdrop }[task.type];
   return kind(host, task, hooks) || { pick() {} };
 }
 
@@ -316,4 +326,136 @@ function answer3(host, task, hooks) {
         });
       });
     });
+}
+
+// ------------------------------------------------------------------ mapdrop
+
+const SVG = 'http://www.w3.org/2000/svg';
+const svg = (tag, attrs = {}, text) => {
+  const e = document.createElementNS(SVG, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (text != null) e.textContent = text;
+  return e;
+};
+
+// Drag each name onto its homeland on a map of the Maritimes. Tap a name and then the map works too.
+function mapdrop(host, task, hooks) {
+  const fb = feedback(host);
+  host.insertBefore(el('p', 'hint', 'Drag each name onto its homeland on the map. Or tap a name, then tap the map.'), host.querySelector('.feedback'));
+  const project = ([lon, lat]) => [(lon - MAP.proj.w) * MAP.proj.kx, (MAP.proj.n - lat) * MAP.proj.ky];
+
+  const card = el('div', 'mapcard');
+  const map = svg('svg', { viewBox: `0 0 ${MAP.w} ${MAP.h}`, role: 'img', 'aria-label': 'Map of New Brunswick, Nova Scotia, Prince Edward Island and the Gaspé' });
+  map.append(svg('rect', { width: MAP.w, height: MAP.h, class: 'sea' }));
+  const L = MAP.land;
+  for (const k of ['me', 'qc', 'lab', 'nb', 'ns', 'pe', 'nf']) map.append(svg('path', { d: L[k], class: 'land' }));
+  const clip = svg('clipPath', { id: 'homeland-clip' });
+  clip.append(svg('path', { d: L.nb + L.ns + L.pe + L.nf + L.qc }));
+  map.append(clip);
+  const zones = svg('g', { 'clip-path': 'url(#homeland-clip)' });
+  const regionEls = {};
+  for (const [id, d] of Object.entries(MAP.regions)) {
+    const r = svg('path', { d, class: `region r-${id}`, 'data-region': id });
+    zones.append(r);
+    regionEls[id] = r;
+  }
+  map.append(zones);
+  for (const k of ['me', 'qc', 'lab', 'nb', 'ns', 'pe', 'nf']) map.append(svg('path', { d: L[k], class: 'coast' }));
+  const P = MAP.places;
+  map.append(svg('path', { d: P.wolastoq, class: 'river' }));
+  const label = (xy, text, cls) => map.append(svg('text', { x: xy[0], y: xy[1], class: cls }, text));
+  label(P.wolastoqLabel, 'Wolastoq (Saint John River)', 'place river-label');
+  label(P.passamaquoddy, 'Passamaquoddy Bay', 'place water-label');
+  label(P.fundy, 'Bay of Fundy', 'place water-label');
+  label(P.gulf, 'Gulf of St. Lawrence', 'place water-label');
+  map.append(svg('circle', { cx: P.stGeorge[0], cy: P.stGeorge[1], r: 9, class: 'town' }));
+  label([P.stGeorge[0] - 14, P.stGeorge[1] - 12], 'St. George', 'place town-label');
+  const names = svg('g');
+  map.append(names);
+
+  const tray = el('div', 'tray');
+  card.append(map, tray);
+  document.body.append(card);
+  document.body.classList.add('mapping');
+  cleanup = () => { card.remove(); ghost?.remove(); document.body.classList.remove('mapping'); };
+
+  const placed = new Set();
+  let wrong = 0, selected = null, ghost = null, over = null;
+
+  const regionAt = (x, y) => document.elementsFromPoint(x, y).find((e) => e.dataset?.region)?.dataset.region || null;
+  const hover = (id) => {
+    if (over === id) return;
+    if (over) regionEls[over].classList.remove('over');
+    over = id;
+    if (over && !placed.has(over)) regionEls[over].classList.add('over');
+  };
+
+  function drop(item, regionId, chip) {
+    hover(null);
+    if (!regionId) return;
+    if (placed.has(regionId)) { fb.say('That homeland already has its name. Try another spot.', 'bad'); return; }
+    if (regionId === item.id) {
+      placed.add(regionId);
+      regionEls[regionId].classList.add('named');
+      const at = project(task.regions[regionId].at);
+      names.append(svg('text', { x: at[0], y: at[1], class: 'name' }, item.label));
+      chip.remove();
+      selected = null;
+      fb.say(`Yes: ${item.label}.`, 'good');
+      if (placed.size === task.items.length) {
+        fb.say('All three homelands named.', 'good');
+        explain(host, task.explain);
+        hooks.done({ firstTry: wrong === 0 });
+      }
+    } else {
+      wrong++;
+      chip.classList.remove('shake'); void chip.offsetWidth; chip.classList.add('shake');
+      fb.say(`Not ${item.label}. ${task.regions[regionId].hint} Try again.`, 'bad');
+    }
+  }
+
+  for (const item of shuffle(task.items)) {
+    const chip = el('button', 'chip map-chip', item.label);
+    chip.type = 'button';
+    let start = null;
+    chip.addEventListener('pointerdown', (e) => {
+      start = [e.clientX, e.clientY];
+      chip.setPointerCapture(e.pointerId);
+    });
+    chip.addEventListener('pointermove', (e) => {
+      if (!start) return;
+      if (!ghost && Math.hypot(e.clientX - start[0], e.clientY - start[1]) > 6) {
+        ghost = el('div', 'ghost', item.label);
+        document.body.append(ghost);
+        chip.classList.add('dragging');
+      }
+      if (ghost) {
+        ghost.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+        hover(regionAt(e.clientX, e.clientY));
+      }
+    });
+    chip.addEventListener('pointerup', (e) => {
+      const dragged = !!ghost;
+      start = null;
+      chip.classList.remove('dragging');
+      if (dragged) {
+        ghost.remove(); ghost = null;
+        drop(item, regionAt(e.clientX, e.clientY), chip);
+      } else {
+        // tap to select, then tap the map
+        tray.querySelectorAll('.map-chip').forEach((c) => c.classList.toggle('picked', c === chip && selected !== item));
+        selected = selected === item ? null : item;
+        fb.say(selected ? `Now tap the homeland of the ${item.label}.` : '', '');
+      }
+    });
+    chip.addEventListener('pointercancel', () => { start = null; ghost?.remove(); ghost = null; hover(null); });
+    chip.dataset.id = item.id;
+    tray.append(chip);
+  }
+
+  map.addEventListener('click', (e) => {
+    if (!selected) return;
+    const chip = tray.querySelector(`[data-id="${selected.id}"]`);
+    drop(selected, regionAt(e.clientX, e.clientY), chip);
+  });
 }

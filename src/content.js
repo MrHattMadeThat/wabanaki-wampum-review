@@ -9,6 +9,7 @@
 //   order   put items in order (items are listed in the correct order here)
 //   match   give each item one of the choices; `pick` links an item to a named 3D part
 //   answer3 build a three-part written answer: claim, detail, why it matters
+//   mapdrop drag each name onto its homeland on a map of the Maritimes (src/map-data.js)
 //
 // `quiz` is the quiz question number a station or task prepares for (from the review's quiz map).
 
@@ -34,18 +35,31 @@ export const STATIONS = [
         explain: 'Wabanaki means People of the Dawn. Look where you are standing: the far east, where the sun rises first.',
       },
       {
-        type: 'multi',
-        prompt: 'Which of these are the five Wabanaki nations from the reading? Pick all five.',
-        options: [
-          { text: 'Mi’kmaq', correct: true },
-          { text: 'Wolastoqiyik', correct: true },
-          { text: 'Peskotomuhkati (Passamaquoddy)', correct: true },
-          { text: 'Penobscot', correct: true },
-          { text: 'Abenaki', correct: true },
-          { text: 'Mohawk', why: 'The Mohawk are one of the Haudenosaunee nations.' },
-          { text: 'Onondaga', why: 'The Onondaga are Haudenosaunee, the Keepers of the Fire.' },
+        type: 'mapdrop',
+        prompt: 'Three Wabanaki nations have homelands in what is now New Brunswick. Put each name on its homeland.',
+        items: [
+          { id: 'mikmaq', label: 'Mi’kmaq' },
+          { id: 'wolastoqewiyik', label: 'Wolastoqewiyik' },
+          { id: 'peskotomuhkatiyik', label: 'Peskotomuhkatiyik' },
         ],
-        explain: 'Mi’kmaq, Wolastoqiyik, Peskotomuhkati, Penobscot and Abenaki.',
+        // `at` is where the name sits once placed, as [longitude, latitude]
+        regions: {
+          mikmaq: {
+            at: [-65.15, 47.05],
+            hint: 'The big homeland in the east and north takes in eastern New Brunswick, Nova Scotia, PEI and the Gaspé.',
+          },
+          wolastoqewiyik: {
+            at: [-67.35, 46.9],
+            hint: 'The homeland in western New Brunswick follows the Wolastoq, the Saint John River.',
+          },
+          peskotomuhkatiyik: {
+            at: [-67.15, 45.5],
+            hint: 'The small homeland in the southwest wraps around Passamaquoddy Bay, where St. George is.',
+          },
+        },
+        explain:
+          'St. George sits in Peskotomuhkati (Passamaquoddy) homeland. The Wolastoqewiyik (also spelled Wolastoqiyik) live along the Wolastoq, the Saint John River. ' +
+          'The Mi’kmaq homeland is the biggest of the three.',
       },
       {
         type: 'choice',

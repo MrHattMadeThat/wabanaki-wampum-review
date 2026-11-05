@@ -44,6 +44,7 @@ export async function makeModel(id, opts = {}) {
       obj.name = id;
       if (entry.scale) obj.scale.setScalar(entry.scale);
       obj.traverse((o) => {
+        if (o.isMesh && o.name === 'water_mask') { P.asWaterMask(o); return; }
         if (o.isMesh) { o.castShadow = o.receiveShadow = true; o.material = o.material.clone(); }
         // Blender custom properties arrive as userData; `explode` may come as a string "x,y,z"
         if (typeof o.userData.explode === 'string') o.userData.explode = o.userData.explode.split(',').map(Number);
