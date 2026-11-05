@@ -70,10 +70,8 @@ Priority 1 is what students spend the most time looking at. Do those first.
 | 2 | `shell_whelk` | `shells` | 0.4 m long | the root |
 | 2 | `wigwam` | `camp` | 4 m across the base | none |
 | 2 | `longhouse` | `belt` | 14 m long, about 6 m tall | none |
-| 2 | `tool_snowshoes` | `camp` | a pair, about 0.9 m long each | the root |
-| 2 | `tool_toboggan` | `camp` | 2.4 m long | the root |
-| 2 | `tool_leister` | `camp` | 2.6 m long | the root |
-| 2 | `tool_hooks` | `camp` | three hooks and a short line, about 3× life | the root |
+| 2 | `bow_set` | `camp` | a 1.3 m bow and an arrow hung on a rack | `bow_wood`, `bow_sinew`, `bow_flint`, `bow_gum` |
+| 3 | `tool_snowshoes` | `camp` | a pair, about 0.9 m long each | none (scenery) |
 | 3 | `trade_kettle` | `camp` | 0.4 m across | none |
 | 3 | `council_fire` | `fire` | 1.6 m across with its stone ring | children `flame`, `flame_core`, `fire_light` (see below) |
 | 3 | `bench` | `shells` | 1.6 × 0.7 m, top at 0.59 m | child `grinding_stone` |
@@ -151,14 +149,21 @@ A Haudenosaunee longhouse, the setting for reading the belt. A long building wit
 sheets over a frame of bent poles, held with outer poles, a door at each end of the long axis (±X), smoke
 holes along the ridge. About 14 m long here (real ones were often much longer).
 
-### Tools at the fall camp
+### The fall camp
 
-- `tool_snowshoes`: a pair. Bent wooden frames laced with rawhide webbing. They "kept hunters on top of deep snow."
-- `tool_toboggan`: "split from rock maple" to carry heavy loads. Thin boards lashed side by side with crossbars,
-  the front curled up and back.
-- `tool_leister`: a fish spear with **two bendy hardwood prongs** on a long wooden shaft. Keep to that: the
-  reading describes only the two prongs.
-- `tool_hooks`: hooks of bone or fire-hardened wood, on line braided from basswood fibre. Larger than life.
+Changed 2026-11-05: the camp question is now about building a bow and arrow, so the leister, hooks and
+toboggan are no longer placed. Their stand-ins stay in `props.js`; don't build them.
+
+- `bow_set`: a bow and one arrow hung on a two-post rack, set up like the canoe. It has four named parts: the
+  wood stays put and the others fly apart for the question (`explode` as an "x,y,z" custom property, in metres,
+  in the rack's plane). The rack faces the camera (Blender +Y). The bow's arc is on top with the string under
+  it, and the arrow hangs under that, pointing +X. Copy the layout of `buildBow` in `src/props.js`.
+  - `bow_wood`: the bow stave, the arrow shaft and the fletching (the feathers ride with the shaft). Explode 0,0,0.
+  - `bow_sinew`: the bowstring, sinew from a deer's tendon. Explode about 0.34 up.
+  - `bow_flint`: a flaked flint arrowhead. Explode about 0.2 right and 0.2 up.
+  - `bow_gum`: the dark spruce gum gluing the head into the shaft. Explode about 0.16 right and 0.24 down.
+  - The materials come from the teacher, not the reading: wood, deer sinew, flint, spruce gum. Nothing iron.
+- `tool_snowshoes`: scenery now. A pair of bent wooden frames laced with rawhide webbing.
 - `trade_kettle`: a copper or brass kettle with a bail handle. This is the trade good that started the dependence
   the unit warns about, so it should look shiny and foreign next to the handmade tools.
 

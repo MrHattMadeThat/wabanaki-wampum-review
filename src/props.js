@@ -454,6 +454,88 @@ export function buildTreeOfPeace() {
   return shadowed(root);
 }
 
+// ------------------------------------------------------------------ bow and arrow
+
+// A bow and an arrow hung on a drying rack, in four named parts like the canoe. They hang in the rack's plane,
+// which faces local +z (the viewer): the bow's arc on top with its string under it, the arrow below.
+// The wood stays put; the other parts move off it in that plane when exploded, so they don't hide each other.
+export function buildBow() {
+  const root = new THREE.Group();
+  root.name = 'bow_set';
+  const pole = mat('#6b4d34');
+  for (const x of [-0.82, 0.82]) {
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 1.7, 6), pole);
+    post.position.set(x, 0.85, -0.06);
+    root.add(post);
+  }
+  const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.8, 6).rotateZ(Math.PI / 2), pole);
+  bar.position.set(0, 1.66, -0.06);
+  root.add(bar);
+
+  const half = 0.66, bulge = 0.2, Ys = 1.06; // the bow: tip to tip along x, its string at y = Ys
+  const r = 0.02;
+  const bowAt = (t) => new THREE.Vector3(half * t, Ys + bulge * (1 - t * t) - 0.03 * t ** 4, 0);
+  const Ya = 0.84, tail = -0.48, neck = 0.36; // the arrow, under the bow, pointing right
+
+  // part: wood (the bow stave, the arrow shaft, and the feathers that ride along with the shaft)
+  const wood = new THREE.Group();
+  wood.name = 'bow_wood';
+  const pts = [];
+  for (let i = 0; i <= 24; i++) pts.push(bowAt(-1 + i / 12));
+  wood.add(new THREE.Mesh(tubeThrough(pts, r, 6), mat('#6e4424')));
+  const grip = new THREE.Mesh(new THREE.CylinderGeometry(r * 1.4, r * 1.4, 0.13, 8).rotateZ(Math.PI / 2), mat('#5e3b20'));
+  grip.position.copy(bowAt(0));
+  wood.add(grip);
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.009, neck - tail, 6).rotateZ(Math.PI / 2), mat('#c9a26b'));
+  shaft.position.set((neck + tail) / 2, Ya, 0);
+  wood.add(shaft);
+  for (const a of [Math.PI / 2, Math.PI / 2 + (2 * Math.PI) / 3, Math.PI / 2 + (4 * Math.PI) / 3]) {
+    const f = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.03).translate(0, 0.017, 0), mat('#7c6d5c', { side: THREE.DoubleSide }));
+    f.rotation.x = a;
+    f.position.set(tail + 0.09, Ya, 0);
+    wood.add(f);
+  }
+  wood.userData.explode = [0, 0, 0];
+  root.add(wood);
+
+  // a big invisible target for a thin or small part, so it is easy to click or drop on
+  const hit = (w, h, x, y) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.06), new THREE.MeshBasicMaterial({ visible: false }));
+    m.position.set(x, y, 0);
+    return m;
+  };
+
+  // part: sinew (the bowstring)
+  const sinew = new THREE.Group();
+  sinew.name = 'bow_sinew';
+  const a = bowAt(-1), b = bowAt(1);
+  const string = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, a.distanceTo(b), 5).rotateZ(Math.PI / 2), mat('#eadcbc'));
+  string.position.copy(a).add(b).multiplyScalar(0.5);
+  sinew.add(string, hit(1.3, 0.07, 0, string.position.y));
+  sinew.userData.explode = [0, 0.34, 0.04]; // up above the bow's arc
+  root.add(sinew);
+
+  // part: flint (the arrowhead, a flat leaf-shaped point)
+  const flint = new THREE.Group();
+  flint.name = 'bow_flint';
+  const head = new THREE.Mesh(new THREE.OctahedronGeometry(0.055, 0).scale(1.4, 0.6, 0.2), mat('#4d535b', { roughness: 0.35, flatShading: true }));
+  head.position.set(neck + 0.065, Ya, 0);
+  flint.add(head, hit(0.2, 0.12, neck + 0.065, Ya));
+  flint.userData.explode = [0.2, 0.2, 0.04];
+  root.add(flint);
+
+  // part: gum (the dark glue sealing the head into the shaft)
+  const gum = new THREE.Group();
+  gum.name = 'bow_gum';
+  const blob = new THREE.Mesh(new THREE.SphereGeometry(0.018, 10, 6).scale(2.2, 1, 1), mat('#2a1c13', { roughness: 0.3 }));
+  blob.position.set(neck, Ya, 0);
+  gum.add(blob, hit(0.14, 0.09, neck, Ya));
+  gum.userData.explode = [0.16, -0.24, 0.04];
+  root.add(gum);
+
+  return shadowed(root);
+}
+
 // ------------------------------------------------------------------ tools
 
 export function buildSnowshoes() {

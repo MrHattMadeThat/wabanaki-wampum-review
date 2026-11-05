@@ -80,7 +80,7 @@ const poses = STATIONS.map((s) => {
 
 // ------------------------------------------------------------------ progress
 
-const SAVE = 'open-path-v2'; // v2: the map replaced the five-nations question
+const SAVE = 'open-path-v3'; // v3: the 2026-11-05 question rework (old saves would mark the wrong questions done)
 function loadSave() {
   try { return JSON.parse(localStorage.getItem(SAVE)) || null; } catch { return null; }
 }

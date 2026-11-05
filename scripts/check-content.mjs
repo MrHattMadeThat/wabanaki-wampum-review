@@ -6,7 +6,7 @@ import { ANCHORS } from '../src/layout.js';
 // Every 3D part a task may link to, by station (keep in step with `picks` in src/stations.js).
 const PICKS = {
   canoe: ['part_skin', 'part_frame', 'part_lashing', 'part_gum'],
-  camp: ['tool_snowshoes', 'tool_toboggan', 'tool_leister', 'tool_hooks'],
+  camp: ['bow_wood', 'bow_sinew', 'bow_flint', 'bow_gum'],
   shells: ['shell_whelk', 'shell_quahog'],
   belt: ['slot_1', 'slot_2', 'slot_3', 'slot_4', 'slot_5', 'belt_line'],
 };

@@ -41,6 +41,8 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 }
 .tag.far { font-size: 14px; background: rgba(30, 23, 19, 0.75); color: var(--shell); }
 .tag.num { background: var(--gold); width: 26px; height: 26px; padding: 0; display: grid; place-items: center; }
+.tag.num.stone { background: var(--bark-3); color: var(--ink-2); opacity: 0.85; }
+.tag.num.stone.lit { background: var(--gold); color: var(--ink); opacity: 1; width: auto; padding: 0 10px; white-space: nowrap; }
 .tag.dir { background: transparent; box-shadow: none; color: var(--shell); text-shadow: 0 1px 3px #000; font-size: 12px; }
 /* a label on a part the question asks about: click to pick it, drop an answer on it */
 .tag.item {
@@ -124,6 +126,7 @@ h1 { font: 650 27px/1.12 var(--display); font-variation-settings: 'SOFT' 50, 'op
 .panel-foot:has(#next[hidden]) { padding-bottom: 6px; }
 
 .prompt { font: 600 19px/1.3 var(--display); font-variation-settings: 'opsz' 24; margin: 0 0 10px; }
+.lead { font-size: 14.5px; line-height: 1.45; color: var(--ink-2); margin: 0 0 10px; padding-left: 10px; border-left: 3px solid var(--purple-2); }
 .hint { font-size: 13.5px; color: var(--ink-2); margin: 0 0 8px; }
 .step { font-weight: 700; margin: 0 0 8px; color: var(--purple); }
 

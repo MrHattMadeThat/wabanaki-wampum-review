@@ -169,27 +169,30 @@ export const STATIONS = [
     title: 'Made by hand',
     place: 'A fall camp, inland',
     intro:
-      'Summers were spent in fishing villages on Passamaquoddy Bay. In fall and late winter, families moved inland to hunt. ' +
-      'Almost everything they used, they made themselves, and parents taught the skills to their children.',
+      'In fall and late winter, families moved inland to hunt. Hunters made their own bows and arrows from the land around them. ' +
+      'Right now this one is in pieces. Give each part its material and it will put itself back together.',
     tasks: [
       {
+        // The bow materials come from the teacher (2026-11-05), not the review doc.
         type: 'match',
-        prompt: 'Match each tool to what it was or did.',
+        prompt: 'What is each part of the bow and arrow made of?',
         items: [
-          { id: 'snowshoes', label: 'Snowshoes', pick: 'tool_snowshoes', answer: 'snow' },
-          { id: 'toboggan', label: 'Toboggan', pick: 'tool_toboggan', answer: 'maple' },
-          { id: 'leister', label: 'Leister', pick: 'tool_leister', answer: 'spear' },
-          { id: 'hooks', label: 'Fish hooks', pick: 'tool_hooks', answer: 'bone' },
-          { id: 'line', label: 'Fishing line', answer: 'basswood' },
+          { id: 'wood', label: 'Bow and arrow shaft', pick: 'bow_wood', answer: 'wood' },
+          { id: 'string', label: 'Bowstring', pick: 'bow_sinew', answer: 'sinew' },
+          { id: 'head', label: 'Arrowhead', pick: 'bow_flint', answer: 'flint' },
+          { id: 'glue', label: 'Glue that holds the head on', pick: 'bow_gum', answer: 'gum' },
         ],
         choices: [
-          { id: 'snow', label: 'Kept hunters on top of deep snow' },
-          { id: 'maple', label: 'Split from rock maple to carry heavy loads' },
-          { id: 'spear', label: 'A fish spear with two bendy hardwood prongs' },
-          { id: 'bone', label: 'Bone or fire-hardened wood' },
-          { id: 'basswood', label: 'Braided from basswood fibre' },
+          { id: 'wood', label: 'Wood' },
+          { id: 'sinew', label: 'Sinew from a deer’s tendon' },
+          { id: 'flint', label: 'Flint' },
+          { id: 'gum', label: 'Spruce gum' },
+          { id: 'iron', label: 'Iron', why: 'Iron came later, from European traders.' },
+          { id: 'store', label: 'Store-bought string', why: 'There were no stores. The string came from a deer the hunter had already caught.' },
         ],
-        explain: 'Self-sufficient means able to make or find what you need yourself, without depending on someone else.',
+        explain:
+          'Every part came from the land, or from an animal the hunter had already caught. If a string snapped, the hunter made a new one. ' +
+          'That is self-sufficient: able to make or find what you need yourself.',
       },
       {
         type: 'choice',
@@ -200,7 +203,9 @@ export const STATIONS = [
           { text: 'Guns were not allowed in the Wabanaki Confederacy', why: 'The reading says nothing like that. Think about supplies.' },
           { text: 'Guns took too long to learn', why: 'The reading’s point is about where the supplies came from.' },
         ],
-        explain: 'It is the same comparison as the plastic canoe: a strong tool you cannot supply or fix yourself.',
+        explain:
+          'A bow could be made and fixed from the land. A gun needed powder and bullets from a trader. ' +
+          'It is the same lesson as the plastic canoe: a strong tool you cannot supply or fix yourself.',
       },
     ],
   },
@@ -210,32 +215,32 @@ export const STATIONS = [
     title: 'Messengers by canoe',
     place: 'A wide pool on the river',
     intro:
-      'A chief has died. The Peskotomuhkati kept their laws on strings of wampum, read aloud by a trained keeper. ' +
-      'Those laws say what happens next, and the canoe is part of it.',
+      'A chief has died, and a new one must be chosen. The Peskotomuhkati kept their laws on wampum, and the law says one nation ' +
+      'can’t choose alone. So messengers set out by canoe to the other nations of the Wabanaki Confederacy.',
     tasks: [
       {
-        type: 'order',
-        prompt: 'Put the steps for choosing a new chief in order.',
-        items: [
-          'The people mourn. The chief’s flag-pole is burned with his tools.',
-          'They mourn for one whole year.',
-          'Messengers set out in four or six canoes to the other nations.',
-          'Leaders gather, and the councillors talk it over together.',
-          'When they agree, a chief places his own medal on the new chief.',
-          'Seven captains are chosen to help him, the same way.',
+        type: 'choice',
+        prompt: 'The messengers paddle to the other nations of the Wabanaki Confederacy. What is a confederacy?',
+        options: [
+          { text: 'A group of nations that join as allies, while each still runs its own affairs', correct: true },
+          { text: 'One big nation with one ruler', why: 'In a confederacy, each nation still runs its own affairs.' },
+          { text: 'A meeting held once a year', why: 'The leaders do meet, but the confederacy is the nations themselves, joined as allies.' },
+          { text: 'A group of traders', why: 'Trade happened, but a confederacy is nations joined as allies.' },
         ],
-        explain: 'The wampum records say it directly: one tribe alone may not decide on the new chief.',
+        explain: 'Nations like the Mi’kmaq, Wolastoqiyik and Peskotomuhkati joined as allies in the Wabanaki Confederacy. Each nation still ran its own affairs.',
       },
       {
         type: 'choice',
-        prompt: 'Why did the law send messengers to the other nations instead of letting one nation decide?',
+        prompt: 'Why does the law send messengers to every nation, instead of letting one nation choose the new chief?',
         options: [
-          { text: 'So no single family or nation could take that power for itself', correct: true },
+          { text: 'Every nation needs a say, so no one nation can take that power for itself', correct: true },
           { text: 'Because the dead chief’s family was not allowed to help', why: 'The reading doesn’t say that. Think about who holds the power.' },
-          { text: 'Because the messengers chose the chief', why: 'The messengers carried word. The councillors decided, together.' },
+          { text: 'Because the messengers choose the chief', why: 'The messengers carry word. The councillors decide, together.' },
           { text: 'To trade furs on the way', why: 'Canoes did carry trade, but this trip had a different job.' },
         ],
-        explain: 'Big decisions were shared. The canoe carried the messengers, so it helped make shared decisions possible.',
+        explain:
+          'The wampum law says it: one tribe alone may not decide on the new chief. Every nation had a real say in the decision, ' +
+          'and that is empowerment. The canoes made it possible.',
       },
       {
         type: 'choice',
@@ -246,7 +251,9 @@ export const STATIONS = [
           { text: 'A confederacy', why: 'A confederacy is nations joined as allies. The decision itself is consensus.' },
           { text: 'Oral tradition', why: 'Oral tradition is how knowledge is passed down by speaking and listening.' },
         ],
-        explain: 'Consensus is a decision the whole group agrees on together, not one person or a majority deciding for everyone.',
+        explain:
+          'Consensus is a decision the whole group agrees on, not one person or a majority deciding for everyone. ' +
+          'When they agreed, a chief placed his own medal on the new chief.',
       },
     ],
   },
@@ -325,24 +332,11 @@ export const STATIONS = [
     title: 'The story of the Great Peace',
     place: 'Haudenosaunee country',
     intro:
-      'This story belongs to the Haudenosaunee and is told in many versions. This is the short one from the reading. ' +
-      'Each stone holds one part of it.',
+      'This Haudenosaunee story is told in many versions. Five nations were trapped in a cycle of war. A messenger, the Peacemaker, ' +
+      'brought a law of peace, but he could not do it alone. Each stone lights up as the story goes on.',
+    // one short name per story stone, in order (src/stations.js lights them as the questions are answered)
+    stones: ['War', 'The Peacemaker', 'Grief', 'The strings', 'Condolence', 'The message', 'Tadodaho', 'Tree of Peace'],
     tasks: [
-      {
-        type: 'order',
-        prompt: 'Put the story in order.',
-        items: [
-          'Five nations are trapped in a cycle of war.',
-          'The Peacemaker brings a law of peace.',
-          'Hiawatha loses his daughters and leaves home.',
-          'By a lake, Hiawatha strings shells.',
-          'The first condolence comforts Hiawatha.',
-          'Hiawatha speaks for peace. Four nations agree.',
-          'Tadodaho, the last holdout, keeps the fire.',
-          'Weapons are buried under the Tree of Peace.',
-        ],
-        explain: 'Watch for the mix-up: the first condolence comes well before the Tree of Peace. They are separate moments.',
-      },
       {
         type: 'choice',
         quiz: 2,
@@ -377,7 +371,8 @@ export const STATIONS = [
           { text: 'A message carried by canoe', why: 'That is a messenger’s job, not condolence.' },
         ],
         explain:
-          'For the Haudenosaunee, the condolence ceremony clears grief so a person can lead again. It is still held today when a chief dies and a new one is raised.',
+          'For the Haudenosaunee, the condolence ceremony clears grief so a person can lead again. It is still held today when a chief dies and a new one is raised. ' +
+          'Healed, Hiawatha became the Peacemaker’s voice. Watch for the mix-up: the first condolence comes long before the Tree of Peace.',
       },
     ],
   },
@@ -471,27 +466,31 @@ export const STATIONS = [
     title: 'Read the belt',
     place: 'Inside the longhouse',
     intro:
-      'This is the Hiawatha Belt: four squares and a tree. Held with the tree pointing north, it reads right to left, ' +
-      'east to west, like the path of the sun. Click a shape on the belt, then name its nation.',
+      'This is the Hiawatha Belt. Belt makers used simple shapes for big ideas. Held with the tree pointing north, ' +
+      'it reads east to west, like the path of the sun.',
     tasks: [
       {
-        type: 'match',
-        prompt: 'Name the nation at each place on the belt. Start at the east end, on the right.',
-        items: [
-          { id: 's1', label: '1 · east end square', pick: 'slot_1', answer: 'mohawk' },
-          { id: 's2', label: '2 · square', pick: 'slot_2', answer: 'oneida' },
-          { id: 's3', label: '3 · the tree, centre', pick: 'slot_3', answer: 'onondaga' },
-          { id: 's4', label: '4 · square', pick: 'slot_4', answer: 'cayuga' },
-          { id: 's5', label: '5 · west end square', pick: 'slot_5', answer: 'seneca' },
+        type: 'choice',
+        prompt: 'Start with the four squares. What does each square stand for?',
+        options: [
+          { text: 'A nation', correct: true },
+          { text: 'A longhouse', why: 'Good guess, but belt makers used a square for a whole nation.' },
+          { text: 'A letter of the alphabet', why: 'Wampum is not an alphabet. Each shape stands for a big idea.' },
+          { text: 'A season of the year', why: 'There are four, but they are not seasons. Each square is a nation.' },
         ],
-        choices: [
-          { id: 'mohawk', label: 'Mohawk' },
-          { id: 'oneida', label: 'Oneida' },
-          { id: 'onondaga', label: 'Onondaga' },
-          { id: 'cayuga', label: 'Cayuga' },
-          { id: 'seneca', label: 'Seneca' },
+        explain: 'Four squares for four nations: Mohawk, Oneida, Cayuga and Seneca. The fifth nation is in the centre.',
+      },
+      {
+        type: 'multi',
+        prompt: 'Now the tree in the centre. What does it stand for?',
+        options: [
+          { text: 'The Onondaga nation, Keepers of the Fire', correct: true },
+          { text: 'The Tree of Peace, where the nations buried their weapons', correct: true },
+          { text: 'A forest the five nations shared', why: 'The tree is a symbol, not a real forest.' },
+          { text: 'The Peacemaker', why: 'He is part of the story, but the tree stands for a nation and for the peace.' },
+          { text: 'The eastern door', why: 'The tree is in the centre, where the fire is kept. The Mohawk kept the eastern door.' },
         ],
-        explain: 'Mohawk in the east, Seneca in the west, and the tree for the Onondaga in the centre, where the fire is kept.',
+        explain: 'The tree is the Onondaga, keeping the council fire at the centre, and it is the Tree of Peace the nations gathered under.',
       },
       {
         type: 'choice',
@@ -533,17 +532,16 @@ export const STATIONS = [
         quiz: 9,
         prompt: 'What was wampum used for? Pick every use from the reading.',
         options: [
-          { text: 'Keeping laws', correct: true },
-          { text: 'Recording peace agreements and promises', correct: true },
+          { text: 'Keeping laws, agreements and council decisions', correct: true },
           { text: 'Reciting history at gatherings', correct: true },
           { text: 'Comforting grief in the condolence ceremony', correct: true },
-          { text: 'Recording council decisions', correct: true },
-          { text: 'Setting the rules for choosing a chief', correct: true },
           { text: 'Spelling out words, one bead per letter', why: 'Wampum is not an alphabet.' },
           { text: 'Sealing the seams of a canoe', why: 'That was spruce gum.' },
           { text: 'Replacing the speaker, so no one had to remember the words', why: 'The belt needed a reader. It held the words in place; it didn’t replace the speaker.' },
         ],
-        explain: 'Wampum keepers learned the Great Law from elders and recited it at council, holding the belts as they spoke.',
+        explain:
+          'Wampum keepers recited the laws at council, holding the belts as they spoke. ' +
+          'Even the law for choosing a new chief, from the messenger stop, was kept on wampum.',
       },
       {
         type: 'choice',
@@ -591,14 +589,17 @@ export const STATIONS = [
       },
       {
         type: 'choice',
-        prompt: 'Historians say 1142. Others say 1451. Why can’t they agree when the Great Peace was made?',
+        lead:
+          'The Great Peace was made long ago, but no one wrote down the year. The story was told aloud for centuries, then written in English around 1900. ' +
+          'So historians hunt for clues. One team matched a dark sky in the story to a solar eclipse in 1142. Others say 1451.',
+        prompt: 'Why can’t historians agree on the year?',
         options: [
-          { text: 'The story was told aloud for centuries before it was written down, and written versions disagree', correct: true },
-          { text: 'The wampum belts recorded two different dates', why: 'Belts don’t record dates like writing does.' },
-          { text: 'Nobody has studied it', why: 'People have. One team links the sky going dark in the story to an eclipse in 1142.' },
-          { text: 'The Haudenosaunee kept it a secret', why: 'The story was told aloud, again and again. It was written in English around 1900.' },
+          { text: 'No one wrote the year down at the time, and the written versions disagree', correct: true },
+          { text: 'The wampum belts record two different dates', why: 'Belts don’t record dates like writing does.' },
+          { text: 'Nobody has studied it', why: 'People have. One team even matched it to an eclipse.' },
+          { text: 'The Haudenosaunee kept the story secret', why: 'It was told aloud, again and again, for centuries.' },
         ],
-        explain: 'One team links the sky going dark during a council to a solar eclipse in 1142. Others say 1451.',
+        explain: 'The story was kept by oral tradition, not written records. Historians have to work the year out from clues, so they can disagree.',
       },
       {
         type: 'match',

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { buildStone, buildBeadString } from './props.js';
 import { ANCHORS } from './layout.js';
+import { STATIONS } from './content.js';
 
 // The 3D stage at each stop. build(id, ctx) returns:
 //   group        placed at the anchor, on the ground (or the water)
@@ -41,13 +42,41 @@ function base(ctx, id) {
   return { group, waterY: -y };
 }
 
-// Lights up one pickable at a time.
+// Lights up one pickable (or a list of them) at a time.
 function highlighter(group) {
-  let lit = null;
-  return (name) => {
-    if (lit) glow(lit, false);
-    lit = name ? group.getObjectByName(name) : null;
-    if (lit) glow(lit, true);
+  let lit = [];
+  return (names) => {
+    lit.forEach((o) => glow(o, false));
+    lit = [names].flat().filter(Boolean).map((n) => group.getObjectByName(n)).filter(Boolean);
+    lit.forEach((o) => glow(o, true));
+  };
+}
+
+// A model in named parts that flies apart for the stop's first question and comes back together
+// one part at a time as each part is answered (the canoe, the bow). `explode` on a part's userData
+// says where it goes.
+function assembly(model, names) {
+  const parts = names.map((n) => model.getObjectByName(n)).filter(Boolean);
+  parts.forEach((p) => { p.userData.home = p.position.clone(); p.userData.k = 0; });
+  const assembled = new Set();
+  let exploded = false;
+  const light = highlighter(model);
+  const v = new THREE.Vector3();
+  return {
+    picks: parts.map((p) => p.name),
+    update(dt) {
+      for (const p of parts) {
+        const goal = exploded && !assembled.has(p.name) ? 1 : 0;
+        p.userData.k += (goal - p.userData.k) * Math.min(1, dt * 3);
+        p.position.copy(p.userData.home).add(v.set(...(p.userData.explode || [0, 0, 0])).multiplyScalar(p.userData.k));
+      }
+    },
+    react(e) {
+      if (e.type === 'task-start') { exploded = e.index === 0; assembled.clear(); light(null); }
+      if (e.type === 'select') light(e.pick);
+      if (e.type === 'item-correct' && e.pick) assembled.add(e.pick);
+      if (e.type === 'task-done') light(null);
+    },
   };
 }
 
@@ -77,29 +106,7 @@ const BUILD = {
       log.castShadow = true;
       s.group.add(log);
     }
-    const parts = ['part_skin', 'part_frame', 'part_lashing', 'part_gum'].map((n) => canoe.getObjectByName(n)).filter(Boolean);
-    parts.forEach((p) => { p.userData.home = p.position.clone(); p.userData.k = 0; });
-    const assembled = new Set();
-    let exploded = false;
-    const light = highlighter(canoe);
-    return {
-      ...s,
-      picks: parts.map((p) => p.name),
-      update(dt) {
-        for (const p of parts) {
-          const goal = exploded && !assembled.has(p.name) ? 1 : 0;
-          p.userData.k += (goal - p.userData.k) * Math.min(1, dt * 3);
-          const e = p.userData.explode || [0, 0, 0];
-          p.position.copy(p.userData.home).add(new THREE.Vector3(...e).multiplyScalar(p.userData.k));
-        }
-      },
-      react(e) {
-        if (e.type === 'task-start') { exploded = e.index === 0; assembled.clear(); light(null); }
-        if (e.type === 'select') light(e.pick);
-        if (e.type === 'item-correct' && e.pick) assembled.add(e.pick);
-        if (e.type === 'task-done') light(null);
-      },
-    };
+    return { ...s, ...assembly(canoe, ['part_skin', 'part_frame', 'part_lashing', 'part_gum']) };
   },
 
   async repair(ctx) {
@@ -143,7 +150,7 @@ const BUILD = {
   async camp(ctx) {
     const s = base(ctx, 'camp');
     const wig = await ctx.make('wigwam');
-    wig.position.set(-3.2, 0, -2.4);
+    wig.position.set(-6, 0, -7);
     const place = async (id, x, z, ry = 0, y = 0) => {
       const o = await ctx.make(id);
       o.position.set(x, y, z); o.rotation.y = ry;
@@ -151,18 +158,13 @@ const BUILD = {
       return o;
     };
     s.group.add(wig);
-    await place('tool_snowshoes', 1.4, 1.2, 0.3);
-    await place('tool_toboggan', 2.4, -1.2, -0.4);
-    await place('tool_leister', -0.4, 2.0, 0.15);
-    await place('tool_hooks', 0.4, 0.6, 0.1);
-    const kettle = await place('trade_kettle', 3.6, 1.6, 0);
+    await place('tool_snowshoes', -1.5, -1.1, 0.9);
+    const kettle = await place('trade_kettle', 1.3, -1.4, 0);
     const kt = tag('Traded'); kt.position.set(0, 0.6, 0); kettle.add(kt);
-    const light = highlighter(s.group);
-    return {
-      ...s,
-      picks: ['tool_snowshoes', 'tool_toboggan', 'tool_leister', 'tool_hooks'],
-      react(e) { if (e.type === 'select') light(e.pick); if (e.type === 'task-done') light(null); },
-    };
+    // the bow and arrow on their bench, turned to face the camera
+    const cam = ANCHORS.camp.cam;
+    const bow = await place('bow_set', 0, 0, Math.atan2(cam[0], cam[2]));
+    return { ...s, ...assembly(bow, ['bow_wood', 'bow_sinew', 'bow_flint', 'bow_gum']) };
   },
 
   async messengers(ctx) {
@@ -242,38 +244,41 @@ const BUILD = {
     const a = ANCHORS.story;
     const f = new THREE.Vector3(-a.cam[0], 0, -a.cam[2]).normalize();
     const right = new THREE.Vector3(-f.z, 0, f.x);
-    const stones = [];
-    for (let k = 0; k < 8; k++) {
+    const names = STATIONS.find((x) => x.id === 'story').stones;
+    const stones = names.map((name, k) => {
       const st = buildStone(k);
-      const o = k - 3.5;
+      const o = k - (names.length - 1) / 2;
       st.position.copy(right.clone().multiplyScalar(o * 1.25)).addScaledVector(f, Math.abs(o) ** 2 * -0.12 + 0.8);
       st.lookAt(st.position.clone().sub(f));
-      const n = tag(String(k + 1), 'num');
-      n.position.set(0, 1.45, 0);
-      n.visible = false;
+      const n = tag(String(k + 1), 'num stone');
+      n.position.set(0, k % 2 ? 1.95 : 1.45, 0); // staggered so neighbouring names don't overlap
       st.add(n);
       s.group.add(st);
-      stones.push({ st, n });
-    }
-    let lit = -1, timer = 0;
+      return { st, n, name };
+    });
+    // how many stones each question lights: the war, the Peacemaker and Hiawatha's grief; then the strings
+    // and the condolence; then the rest of the story, which the next stops tell
+    const UPTO = [3, 5, names.length];
+    let want = 0, shown = 0, timer = 0;
+    const set = (k, on) => {
+      const { st, n, name } = stones[k];
+      st.material.emissiveIntensity = on ? 0.45 : 0;
+      n.element.textContent = on ? `${k + 1} · ${name}` : String(k + 1);
+      n.element.classList.toggle('lit', on);
+    };
     return {
       ...s,
       update(dt) {
-        if (lit < 0 || lit >= stones.length) return;
+        if (shown >= want) return;
         timer += dt;
-        if (timer > 0.35) {
-          timer = 0;
-          const { st, n } = stones[lit];
-          st.material.emissiveIntensity = 0.45; n.visible = true;
-          lit++;
-        }
+        if (timer > 0.35) { timer = 0; set(shown++, true); }
       },
       react(e) {
-        if (e.type === 'task-start' && e.index === 0) {
-          lit = -1;
-          stones.forEach(({ st, n }) => { st.material.emissiveIntensity = 0; n.visible = false; });
+        if (e.type === 'task-start') {
+          want = e.index ? UPTO[e.index - 1] : 0;
+          while (shown > want) set(--shown, false);
         }
-        if (e.type === 'task-done' && e.index === 0) { lit = 0; timer = 0; }
+        if (e.type === 'task-done') { want = Math.max(want, UPTO[e.index] ?? names.length); timer = 0.35; }
       },
     };
   },
@@ -368,6 +373,8 @@ const BUILD = {
       ...s,
       picks: ['slot_1', 'slot_2', 'slot_3', 'slot_4', 'slot_5', 'belt_line'],
       react(e) {
+        // the squares question shows the four squares, the tree question shows the tree
+        if (e.type === 'task-start') light([['slot_1', 'slot_2', 'slot_4', 'slot_5'], 'slot_3'][e.index] || null);
         if (e.type === 'select' || e.type === 'option') light(e.pick);
         if (e.type === 'task-done') light(null);
       },

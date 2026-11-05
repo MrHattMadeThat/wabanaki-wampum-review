@@ -7,7 +7,11 @@ framework, same stack as `../st-george-3d`. Started 2026-11-05. Read `README.md`
 
 - **Audience:** Grade 7, lab PCs with integrated graphics. Short sentences. Keep each model under 30k triangles.
 - **Content source:** `C:\Users\fraye\Downloads\Wabanaki_and_Wampum_Unit_Review.docx`. Every fact in
-  `src/content.js` must trace to it. Don't add facts from memory.
+  `src/content.js` must trace to it or to the teacher (marked in a comment, like the bow materials). Don't add
+  facts from memory.
+- **Teach what was taught.** On 2026-11-05 the teacher cut the sequencing questions (choosing a chief, the
+  Hiawatha story: too hard to follow) and the belt's square-by-square nations (outside the curriculum). Don't
+  bring them back.
 - **Reword, don't copy** the quiz. Students should learn the idea, not memorise the wording.
 - **Ceremony is something to know, not something to play.** No one performs the condolence ceremony, and it
   earns no points of its own; sequencing the story is fine. No people models yet. Tadodaho is never a boss
@@ -31,8 +35,12 @@ framework, same stack as `../st-george-3d`. Started 2026-11-05. Read `README.md`
   1366×650 (a 768px laptop with browser bars), before answering, after a wrong answer, or once solved. Re-check
   that whenever content or styles change. Match questions with picks get numbered labels on the 3D parts
   (`addItemTags` in main.js), and answers can be dragged onto those labels or the parts themselves.
-- Ordering questions show two columns (cards, numbered list) inside the panel, which widens for them
-  (`body.wide-panel`) so the scene stays visible. Back / Next and one dot per question sit in the panel header
+- Ordering questions (none in use since 2026-11-05; the type still works) show two columns inside the panel,
+  which widens for them (`body.wide-panel`) so the scene stays visible. A task's optional `lead` is a short
+  setup paragraph above the prompt (the 1142 / 1451 question uses it).
+- The canoe and the bow share `assembly()` in stations.js: the parts fly apart for the stop's first question
+  and return as each is answered. The story stones light in three steps as the story questions are answered
+  (`stones` in content.js names them). Back / Next and one dot per question sit in the panel header
   (`drawNav` in main.js); Back from a stop's first question travels to the previous stop's last question.
 - The trail is an earth ribbon laid on the ground mesh as drawn (`groundAt` in world.js, which matches the
   mesh's own triangles), not on the smooth height function, so it never sinks in.

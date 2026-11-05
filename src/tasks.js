@@ -100,6 +100,7 @@ export function renderTask(host, task, hooks) {
   host.replaceChildren();
   const body = el('div', 'q-body');
   const foot = el('div', 'q-foot');
+  if (task.lead) body.append(el('p', 'lead', task.lead)); // a little setup before the question
   body.append(el('p', 'prompt', task.prompt));
   host.append(body, foot);
   const kind = { choice, multi, order, match, answer3, mapdrop }[task.type];

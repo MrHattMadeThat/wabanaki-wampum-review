@@ -14,6 +14,7 @@ const BUILDERS = {
   longhouse: (o) => P.buildLonghouse(o),
   council_fire: () => P.buildFire(),
   tree_of_peace: () => P.buildTreeOfPeace(),
+  bow_set: () => P.buildBow(),
   tool_snowshoes: () => P.buildSnowshoes(),
   tool_toboggan: () => P.buildToboggan(),
   tool_leister: () => P.buildLeister(),
