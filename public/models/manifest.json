@@ -3,6 +3,18 @@
   "models": {
     "shell_whelk": {
       "file": "shell_whelk.glb"
+    },
+    "canoe_birch": {
+      "file": "canoe_birch.glb"
+    },
+    "canoe_plastic": {
+      "file": "canoe_plastic.glb"
+    },
+    "shell_quahog": {
+      "file": "shell_quahog.glb"
+    },
+    "tree_of_peace": {
+      "file": "tree_of_peace.glb"
     }
   }
 }
