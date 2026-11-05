@@ -248,7 +248,7 @@ export function buildWorld(scene, renderer) {
   );
   world.add(water);
 
-  addForest(world);
+  const forest = addForest(world);
   addRocks(world);
 
   // Called with p in 0..1 (progress along the path) and the point the camera is looking at.
@@ -274,6 +274,22 @@ export function buildWorld(scene, renderer) {
   return {
     setTime,
     tick(t, camera) { waterU.time.value = t; sky.position.copy(camera.position); },
+    // Near the stops in the east, the Blender canoe trees (birch, spruce, and cedar on the riverbanks) replace
+    // the simple stand-ins. Call once the model manifest is loaded. `low` keeps the stand-ins everywhere.
+    async plantTrees(make, { low = false } = {}) {
+      const lists = {
+        tree_spruce: forest.near.filter((n) => n.kind === 0),
+        tree_birch: forest.near.filter((n) => n.kind === 1),
+        tree_cedar: cedarSpots(),
+      };
+      const planted = {};
+      for (const [id, list] of Object.entries(lists)) {
+        const model = low ? null : await make(id);
+        if (model?.userData.source === 'glb') { instanceModel(world, model, list); planted[id] = list.length; }
+        else if (id !== 'tree_cedar') forest.addStandIns(list); // no cedar stand-in: the spruce and birch cover it
+      }
+      return planted;
+    },
   };
 }
 
@@ -307,9 +323,63 @@ function treeKinds() {
   ];
 }
 
+// The stops in the east, where the canoe trees grow close to the path. Trees within NEAR of one are planted
+// from the Blender models, one group per stop so a group off screen is skipped (and left out of the shadows).
+const NEAR = 55;
+const EAST_STOPS = Object.values(ANCHORS).filter((a) => a.at[0] > 30).map((a) => a.at);
+function zoneOf(x, z) {
+  let best = -1, bd = NEAR;
+  EAST_STOPS.forEach(([ax, az], i) => { const d = Math.hypot(x - ax, z - az); if (d < bd) { bd = d; best = i; } });
+  return best;
+}
+
+// White cedar along the riverbanks near the stops.
+function cedarSpots() {
+  const out = [];
+  let seed = 23;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  EAST_STOPS.forEach(([ax, az], zone) => {
+    let n = 0;
+    for (let i = 0; i < 900 && n < 22; i++) {
+      const x = ax + (rnd() * 2 - 1) * NEAR, z = az + (rnd() * 2 - 1) * NEAR;
+      if (x < 44 || zoneOf(x, z) !== zone) continue;
+      const r = riverDist(x, z), w = mix(RIVER_WIDTH[0], RIVER_WIDTH[1], r.along);
+      const h = heightAt(x, z);
+      if (r.d < w * 0.8 || r.d > w * 1.7 || h < 0.5 || h > 5 || nearStage(x, z, 12)) continue;
+      out.push({ kind: 'cedar', zone, x, h, z, sc: 0.8 + rnd() * 0.45, r: rnd() * Math.PI * 2 });
+      n++;
+    }
+  });
+  return out;
+}
+
+// Instances of a loaded model (each of its meshes baked into one geometry), grouped by stop.
+function instanceModel(world, model, list, scale = 0.72) {
+  model.updateMatrixWorld(true);
+  const parts = [];
+  model.traverse((o) => { if (o.isMesh) parts.push({ geo: o.geometry.clone().applyMatrix4(o.matrixWorld), mat: o.material }); });
+  const zones = new Map();
+  for (const n of list) { if (!zones.has(n.zone)) zones.set(n.zone, []); zones.get(n.zone).push(n); }
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  const tint = new THREE.Color();
+  for (const group of zones.values()) {
+    for (const { geo, mat } of parts) {
+      const im = new THREE.InstancedMesh(geo, mat, group.length);
+      group.forEach(({ x, h, z, sc, r }, i) => {
+        im.setMatrixAt(i, m.compose(p.set(x, h - 0.1, z), q.setFromAxisAngle(up, r), s.setScalar(sc * scale)));
+        im.setColorAt(i, tint.setScalar(0.88 + hash(x, z) * 0.18));
+      });
+      im.computeBoundingSphere();
+      im.castShadow = im.receiveShadow = true;
+      world.add(im);
+    }
+  }
+}
+
 function addForest(world) {
   const kinds = treeKinds();
   const spots = kinds.map(() => []);
+  const near = [];
   let seed = 7;
   const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   for (let i = 0; i < 9000 && spots.reduce((s, a) => s + a.length, 0) < 3200; i++) {
@@ -321,12 +391,14 @@ function addForest(world) {
     if (fbm(x * 0.02, z * 0.02) < 0.38 && rnd() < 0.8) continue; // clearings
     const east = x > 10;
     const k = east ? (rnd() < 0.6 ? 0 : 1) : rnd() < 0.55 ? 2 : 3;
-    spots[k].push([x, h, z, 0.75 + rnd() * 0.6, rnd() * Math.PI * 2]);
+    const sc = 0.75 + rnd() * 0.6, r = rnd() * Math.PI * 2;
+    const zone = k < 2 ? zoneOf(x, z) : -1;
+    if (zone >= 0) near.push({ kind: k, zone, x, h, z, sc, r }); // planted later (see plantTrees)
+    else spots[k].push([x, h, z, sc, r]);
   }
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
   const tint = new THREE.Color();
-  kinds.forEach((k, ki) => {
-    const list = spots[ki];
+  const plant = (k, list) => {
     if (!list.length) return;
     const crown = new THREE.InstancedMesh(k.crown, new THREE.MeshStandardMaterial({ color: '#fff', roughness: 0.9, flatShading: true }), list.length);
     const trunk = new THREE.InstancedMesh(k.trunk, new THREE.MeshStandardMaterial({ color: k.trunkCol, roughness: 0.9 }), list.length);
@@ -338,7 +410,12 @@ function addForest(world) {
     crown.castShadow = trunk.castShadow = true;
     crown.receiveShadow = true;
     world.add(crown, trunk);
-  });
+  };
+  kinds.forEach((k, ki) => plant(k, spots[ki]));
+  return {
+    near,
+    addStandIns(list) { kinds.forEach((k, ki) => plant(k, list.filter((n) => n.kind === ki).map((n) => [n.x, n.h, n.z, n.sc, n.r]))); },
+  };
 }
 
 function addRocks(world) {

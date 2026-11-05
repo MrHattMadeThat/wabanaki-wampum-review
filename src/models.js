@@ -63,6 +63,7 @@ export async function makeModel(id, opts = {}) {
       console.warn(`[models] ${entry.file} failed, using the procedural ${id}`, e);
     }
   }
+  if (!BUILDERS[id]) return null; // Blender-only models (the forest trees) have no stand-in
   const obj = BUILDERS[id](opts);
   obj.userData.source = 'procedural';
   return obj;

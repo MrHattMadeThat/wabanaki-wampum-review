@@ -70,6 +70,7 @@ const ctx = { make: makeModel, heightAt };
 const stages = await Promise.all(STATIONS.map((s) => buildStation(s.id, ctx)));
 stages.forEach((s) => scene.add(s.group));
 buildTrail(scene, groundAt);
+await world.plantTrees(makeModel, { low });
 
 const poses = STATIONS.map((s) => {
   const a = ANCHORS[s.id];

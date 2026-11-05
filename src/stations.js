@@ -140,16 +140,16 @@ const BUILD = {
     const fire = await ctx.make('council_fire');
     put(fire, -1.2, -3).scale.setScalar(0.55);
     const rack = await ctx.make('fish_rack');
-    put(rack, 1.6, 7.4, 0.35);
+    put(rack, 2, -4.5, -0.5);
 
     const rocks = await ctx.make('shore_rocks');
-    const spots = { rock_1: [4.2, 3.4, 0.3], rock_2: [6.6, -6.4, 1.2], rock_3: [9.5, 7.5, 2.1], rock_4: [11, -11, 0.7] };
+    const spots = { rock_1: [4.4, 2.6, 0.3], rock_2: [6.6, -7.4, 1.2], rock_3: [8.5, 3.5, 2.1], rock_4: [10, -13, 0.7] };
     for (const [name, [x, z, ry]] of Object.entries(spots)) {
       const r = rocks.getObjectByName(name);
       if (r) put(r, x, z, ry, -0.15);
     }
     const drift = await ctx.make('driftwood');
-    for (const [name, x, z, ry] of [['drift_1', 1.2, -4.6, 0.7], ['drift_2', 0.4, 8.6, -0.4]]) {
+    for (const [name, x, z, ry] of [['drift_1', -2.5, 1.5, 0.7], ['drift_2', 6, -10.5, -0.4]]) {
       const d = drift.getObjectByName(name);
       if (d) put(d, x, z, ry, -0.05);
     }
@@ -189,7 +189,7 @@ const BUILD = {
           const u = ((t + off) % period) / 2.2; // 2.2 s above water, then a long dive
           if (u > 1) { pp.visible = false; continue; }
           pp.visible = true;
-          pp.position.set(x + u * 2.6, -gy - 0.42 + Math.sin(Math.PI * u) * 0.5, z);
+          pp.position.set(x + u * 2.6, -gy - 0.78 + Math.sin(Math.PI * u) * 0.62, z); // origin at its belly: the back and fin break the surface
           pp.rotation.z = Math.cos(Math.PI * u) * 0.55; // nose up as it rises, down as it dives
         }
         for (const gg of gulls) {
@@ -277,6 +277,9 @@ const BUILD = {
     // the bow and arrow on their bench, turned to face the camera
     const cam = ANCHORS.camp.cam;
     const bow = await place('bow_set', 0, 0, Math.atan2(cam[0], cam[2]));
+    // the string lifts up and to the left, so its label doesn't sit on the bow's
+    const string = bow.getObjectByName('bow_sinew');
+    if (string) string.userData.explode = [-0.36, 0.3, 0.04];
     const build = assembly(bow, ['bow_wood', 'bow_sinew', 'bow_flint', 'bow_gum']);
     return { ...s, ...build, update(dt, t) { build.update(dt, t); campSmoke(dt); } };
   },

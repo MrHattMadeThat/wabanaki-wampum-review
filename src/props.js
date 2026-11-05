@@ -512,7 +512,7 @@ export function buildBow() {
   const string = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, a.distanceTo(b), 5).rotateZ(Math.PI / 2), mat('#eadcbc'));
   string.position.copy(a).add(b).multiplyScalar(0.5);
   sinew.add(string, hit(1.3, 0.07, 0, string.position.y));
-  sinew.userData.explode = [0, 0.34, 0.04]; // up above the bow's arc
+  sinew.userData.explode = [-0.36, 0.3, 0.04]; // up and to the left, clear of the bow's label
   root.add(sinew);
 
   // part: flint (the arrowhead, a flat leaf-shaped point)
@@ -656,6 +656,7 @@ export function buildPorpoise() {
   fin.position.set(-0.05, 0.16, 0);
   const fluke = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 4).scale(0.16, 0.025, 0.42), mat('#2f363d'));
   fluke.position.set(-0.86, 0, 0);
+  [...root.children].forEach((c) => { c.position.y += 0.2; }); // origin at the belly, like the Blender model
   root.add(fin, fluke);
   return shadowed(root);
 }

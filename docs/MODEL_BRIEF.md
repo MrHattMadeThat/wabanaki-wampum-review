@@ -167,7 +167,8 @@ toboggan are no longer placed. Their stand-ins stay in `props.js`; don't build t
   in the rack's plane). The rack faces the camera (Blender +Y). The bow's arc is on top with the string under
   it, and the arrow hangs under that, pointing +X. Copy the layout of `buildBow` in `src/props.js`.
   - `bow_wood`: the bow stave, the arrow shaft and the fletching (the feathers ride with the shaft). Explode 0,0,0.
-  - `bow_sinew`: the bowstring, sinew from a deer's tendon. Explode about 0.34 up.
+  - `bow_sinew`: the bowstring, sinew from a deer's tendon. The site moves it 0.36 left and 0.3 up (set in
+    stations.js, so its label clears the bow's), whatever the file says.
   - `bow_flint`: a flaked flint arrowhead. Explode about 0.2 right and 0.2 up.
   - `bow_gum`: the dark spruce gum gluing the head into the shaft. Explode about 0.16 right and 0.24 down.
   - The materials come from the teacher, not the reading: wood, deer sinew, flint, spruce gum. Nothing iron.

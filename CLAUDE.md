@@ -51,6 +51,10 @@ framework, same stack as `../st-george-3d`. Started 2026-11-05. Read `README.md`
   `flat: false` leaves its ground unlevelled, so each prop is set on the ground where it stands. Smoke
   (`smoke()` in stations.js), gulls and surfacing porpoises are code; the props are stand-ins for Codex's
   priority 4 models.
+- Forest: within 55 m of the eastern stops, Codex's `tree_birch` and `tree_spruce` replace the simple
+  stand-ins, and `tree_cedar` lines the riverbanks (`plantTrees` in world.js). They are instanced in one group
+  per stop so a group off screen is skipped, about 500 trees in all. Everything else, and the whole forest
+  under `?q=low`, stays the cheap stand-ins. `?procedural` ignores the manifest, to compare against stand-ins.
 - The trail is an earth ribbon laid on the ground mesh as drawn (`groundAt` in world.js, which matches the
   mesh's own triangles), not on the smooth height function, so it never sinks in.
 - The Hiawatha Belt pattern is traced from a 1909 photograph and the Haudenosaunee flag drawn from it: a solid
