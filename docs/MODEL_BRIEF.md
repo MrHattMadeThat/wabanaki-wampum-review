@@ -76,6 +76,14 @@ Priority 1 is what students spend the most time looking at. Do those first.
 | 3 | `council_fire` | `fire` | 1.6 m across with its stone ring | children `flame`, `flame_core`, `fire_light` (see below) |
 | 3 | `bench` | `shells` | 1.6 × 0.7 m, top at 0.59 m | child `grinding_stone` |
 | 3 | `basket` | `shells` | 0.56 m across | none |
+| 4 | `tree_birch` | everywhere (scattered) | 9–14 m tall | none |
+| 4 | `tree_spruce` | everywhere (scattered) | 10–16 m tall | none |
+| 4 | `tree_cedar` | river stops (scattered) | 7–10 m tall | none |
+| 4 | `shore_rocks` | `dawn`, `repair` | four boulders, 0.5–2.5 m | children `rock_1`…`rock_4` |
+| 4 | `driftwood` | `dawn` | two logs, 2–3 m | children `drift_1`, `drift_2` |
+| 4 | `canoe_paddle` | `dawn`, `canoe`, `portage` | 1.5 m long | none |
+| 4 | `fish_rack` | `dawn` | 2.5 m wide, 1.6 m tall | none |
+| 4 | `porpoise` | `dawn` (out in the bay) | 1.6 m long | none |
 
 ### `canoe_birch`: the most important model
 
@@ -173,6 +181,43 @@ toboggan are no longer placed. Their stand-ins stay in `props.js`; don't build t
   `flame` (a soft cone, unlit material), `flame_core` (a smaller brighter cone) and `fire_light` (a point light about 0.9 m up).
 - `bench`, `basket`: plain handmade wood and woven splint. The bench's `grinding_stone` is a flat stone the
   beads were ground smooth on.
+
+### Priority 4: the Dawnland shore and the forest (after `bow_set`)
+
+Added 2026-11-05. The opening is being redesigned: a sunrise over the Bay of Fundy, then the camera finds a
+canoe pulled up on a real shoreline with a summer fishing camp, instead of a canoe floating alone at sea.
+The teacher is still choosing how the opening plays, but every version uses these models, so they are safe
+to build now. The sky, the sunrise, smoke, birds and water are site code (Claude), not models.
+
+**Trees.** The site scatters thousands of trees, so these are instanced and must be cheap: **under 3,000
+triangles each**, one material each if you can (vertex colours for bark vs leaves are fine). Origin at the
+base of the trunk. The three are the canoe trees from the reading, so a student should be able to tell them
+apart at 30 m.
+- `tree_birch`: white or paper birch, the canoe's skin. Chalk-white trunk with dark horizontal marks
+  (lenticels) and black patches where branches left, often leaning, one to three trunks from the same base.
+  Open, airy crown of small yellow-green leaves. Summer, not autumn.
+- `tree_spruce`: red or black spruce, the roots and gum. A narrow dark blue-green spire, branches drooping
+  slightly, the trunk barely showing.
+- `tree_cedar`: eastern white cedar, the frame. A ragged, often crooked trunk with stringy reddish-grey bark,
+  flat fan-shaped sprays of yellow-green foliage. It grows on riverbanks, so it is placed along the river.
+
+**The shore.** New Brunswick's Fundy coast: big tides, so rocks show a dark wet band and a skirt of seaweed
+low down.
+- `shore_rocks`: four granite boulders as children `rock_1`…`rock_4` (0.5, 1, 1.6 and 2.5 m), grey with a
+  pink cast, rounded by the sea, not sharp. Bottom 20–30 % darker and wetter, with olive-brown rockweed hanging
+  off the lower edge. The site places and rotates each child on its own.
+- `driftwood`: two weathered logs as children `drift_1` (2 m) and `drift_2` (3 m, with a stub of root). Bleached
+  silver-grey, cracked along the grain.
+- `canoe_paddle`: a single-blade wooden paddle, 1.5 m, long narrow blade, plain wood with a slight sheen. No
+  painted designs (the reading doesn't describe any). It lies across the beached canoe.
+- `fish_rack`: a drying rack of peeled poles: two tripods and a crossbar, 2.5 m wide, with five or six split
+  fish hanging plainly. Families spent the summer in fishing villages on Passamaquoddy Bay; this says so
+  without people.
+- `porpoise`: a harbour porpoise, the everyday food the reading mentions. Small (1.6 m), dark grey back fading
+  to pale belly, small triangular dorsal fin, blunt head with no beak. One gentle arched pose, nose along +X;
+  the site moves it up through the water and back down. **No harpoons and no hunting scene.**
+
+`wigwam` (priority 2 above) is also needed at the shore camp, so it moves up: build it right after these.
 
 ## What not to change
 
