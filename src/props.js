@@ -536,6 +536,149 @@ export function buildBow() {
   return shadowed(root);
 }
 
+// ------------------------------------------------------------------ the dawn shore (stand-ins for docs/MODEL_BRIEF.md priority 4)
+
+// A summer fishing camp's drying rack: two pole tripods, a crossbar, split fish hanging plainly.
+export function buildFishRack() {
+  const root = new THREE.Group();
+  root.name = 'fish_rack';
+  const pole = mat('#8a6d4e');
+  const geos = [];
+  for (const x of [-1.2, 1.2]) for (let i = 0; i < 3; i++) {
+    const a = (i / 3) * Math.PI * 2 + 0.4;
+    const g = new THREE.CylinderGeometry(0.025, 0.035, 1.8, 5).translate(0, 0.9, 0);
+    g.applyMatrix4(new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(Math.sin(a), 0, -Math.cos(a)), 0.28));
+    geos.push(g.translate(x + Math.cos(a) * 0.25, 0, Math.sin(a) * 0.25));
+  }
+  geos.push(new THREE.CylinderGeometry(0.025, 0.025, 2.9, 5).rotateZ(Math.PI / 2).translate(0, 1.55, 0));
+  root.add(new THREE.Mesh(mergeGeometries(geos), pole));
+  const flesh = mat('#c98a6c', { roughness: 0.6 }), skin = mat('#5d6266', { roughness: 0.5 });
+  for (let i = 0; i < 6; i++) {
+    const x = -0.95 + i * 0.38;
+    const fish = new THREE.Group();
+    const side = new THREE.Mesh(new THREE.SphereGeometry(0.5, 10, 6).scale(0.13, 0.62, 0.03), flesh);
+    const back = new THREE.Mesh(new THREE.SphereGeometry(0.5, 10, 6).scale(0.06, 0.6, 0.05), skin);
+    back.position.z = -0.02;
+    fish.add(side, back);
+    fish.position.set(x, 1.55 - 0.36, 0);
+    fish.rotation.y = (i % 2 ? 0.25 : -0.2);
+    root.add(fish);
+  }
+  return shadowed(root);
+}
+
+// Four sea-rounded granite boulders. The bottom of each is darker and wet, with a skirt of rockweed:
+// the Fundy tide goes out a long way.
+export function buildShoreRocks() {
+  const root = new THREE.Group();
+  root.name = 'shore_rocks';
+  const dry = new THREE.Color('#9c918b'), wet = new THREE.Color('#4d4842'), weed = new THREE.Color('#5f5426');
+  [0.5, 1, 1.6, 2.5].forEach((size, k) => {
+    const g = new THREE.IcosahedronGeometry(0.5, 2);
+    const pos = g.attributes.position, col = [];
+    const c = new THREE.Color();
+    for (let i = 0; i < pos.count; i++) {
+      const v = new THREE.Vector3().fromBufferAttribute(pos, i);
+      const n = 1 + (Math.sin(v.x * 9.1 + k) + Math.sin(v.z * 7.3 - k * 2) + Math.sin(v.y * 11.7)) * 0.05;
+      v.multiplyScalar(n).multiply(new THREE.Vector3(1.25, 0.7, 1));
+      v.y = Math.max(v.y, -0.12); // a flat-ish base sitting in the sand
+      pos.setXYZ(i, v.x * size, (v.y + 0.12) * size, v.z * size);
+      const hgt = (v.y + 0.12) / 0.47; // 0 at the base, 1 at the top
+      c.copy(dry).offsetHSL(0, 0, Math.sin(v.x * 23 + v.z * 17) * 0.03);
+      c.lerp(wet, 1 - Math.min(1, Math.max(0, (hgt - 0.18) / 0.14)));
+      if (hgt < 0.16) c.lerp(weed, 0.75);
+      col.push(c.r, c.g, c.b);
+    }
+    g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    g.computeVertexNormals();
+    const m = new THREE.Mesh(g, mat('#fff', { vertexColors: true, flatShading: true, roughness: 0.9 }));
+    m.name = `rock_${k + 1}`;
+    m.position.x = k * 2.5; // the site moves each one where it wants it
+    root.add(m);
+  });
+  return shadowed(root);
+}
+
+// Two silver-grey logs washed up above the tide line.
+export function buildDriftwood() {
+  const root = new THREE.Group();
+  root.name = 'driftwood';
+  const wood = mat('#b8b0a3', { roughness: 0.95 });
+  const a = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.13, 2, 7).rotateZ(Math.PI / 2).translate(0, 0.11, 0), wood);
+  a.name = 'drift_1';
+  const b = new THREE.Group();
+  b.name = 'drift_2';
+  b.add(new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.18, 3, 7).rotateZ(Math.PI / 2).translate(0, 0.16, 0), wood));
+  for (let i = 0; i < 5; i++) { // a stub of root at one end
+    const r = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.6, 5).rotateZ(Math.PI / 2), wood);
+    const ang = (i / 5) * Math.PI * 2;
+    r.position.set(1.65, 0.18 + Math.sin(ang) * 0.12, Math.cos(ang) * 0.12);
+    r.rotation.set(Math.sin(ang) * 0.6, Math.cos(ang) * 0.6, 0);
+    b.add(r);
+  }
+  b.position.z = 1.2;
+  root.add(a, b);
+  return shadowed(root);
+}
+
+// A plain single-blade paddle, along x.
+export function buildPaddle() {
+  const root = new THREE.Group();
+  root.name = 'canoe_paddle';
+  const wood = mat('#c49a62', { roughness: 0.55 });
+  root.add(new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.018, 0.95, 6).rotateZ(Math.PI / 2).translate(-0.27, 0, 0), wood));
+  root.add(new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 6).scale(0.58, 0.032, 0.15).translate(0.47, 0, 0), wood));
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.03, 0.1).translate(-0.75, 0, 0), wood));
+  return shadowed(root);
+}
+
+// A harbour porpoise: dark back, pale belly, small triangular fin, nose along +x. The site moves it.
+export function buildPorpoise() {
+  const root = new THREE.Group();
+  root.name = 'porpoise';
+  const g = new THREE.SphereGeometry(0.5, 18, 10);
+  const pos = g.attributes.position, col = [];
+  const back = new THREE.Color('#2f363d'), belly = new THREE.Color('#bfc6c9'), c = new THREE.Color();
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    const taper = x < 0 ? 1 - Math.pow(-x / 0.5, 2) * 0.55 : 1 - Math.pow(x / 0.5, 3) * 0.25; // slimmer toward the tail
+    pos.setXYZ(i, x * 1.6, y * 0.4 * taper, z * 0.42 * taper);
+    c.copy(belly).lerp(back, Math.min(1, Math.max(0, y * 3 + 0.6)));
+    col.push(c.r, c.g, c.b);
+  }
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.computeVertexNormals();
+  const skin = mat('#fff', { vertexColors: true, roughness: 0.35 });
+  root.add(new THREE.Mesh(g, skin));
+  const finShape = new THREE.Shape();
+  finShape.moveTo(-0.14, 0); finShape.lineTo(0.12, 0); finShape.lineTo(-0.06, 0.2); finShape.lineTo(-0.14, 0);
+  const fin = new THREE.Mesh(new THREE.ExtrudeGeometry(finShape, { depth: 0.03, bevelEnabled: false }).translate(0, 0, -0.015), mat('#2f363d'));
+  fin.position.set(-0.05, 0.16, 0);
+  const fluke = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 4).scale(0.16, 0.025, 0.42), mat('#2f363d'));
+  fluke.position.set(-0.86, 0, 0);
+  root.add(fin, fluke);
+  return shadowed(root);
+}
+
+// A gull: a white body and grey wings that the site flaps (children wing_l, wing_r).
+export function buildGull() {
+  const root = new THREE.Group();
+  root.name = 'gull';
+  root.add(new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 5).scale(0.42, 0.12, 0.12), mat('#f1f0ec')));
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 4), mat('#f1f0ec'));
+  head.position.set(0.2, 0.03, 0);
+  root.add(head);
+  for (const s of [-1, 1]) {
+    const pivot = new THREE.Group();
+    pivot.name = s < 0 ? 'wing_l' : 'wing_r';
+    const wing = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.012, 0.5).translate(0, 0, s * 0.25), mat('#a9b0b6'));
+    const tip = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.013, 0.12).translate(-0.02, 0, s * 0.46), mat('#2b2b2b'));
+    pivot.add(wing, tip);
+    root.add(pivot);
+  }
+  return root;
+}
+
 // ------------------------------------------------------------------ tools
 
 export function buildSnowshoes() {

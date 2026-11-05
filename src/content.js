@@ -16,10 +16,10 @@
 export const STATIONS = [
   {
     id: 'dawn',
-    title: 'People of the Dawn',
+    title: 'First light', // not the name's meaning: the first question asks for it
     place: 'Passamaquoddy Bay, at sunrise',
     intro:
-      'The sun comes up over the bay. This is Peskotomuhkati homeland, where St. George sits today. ' +
+      'Morning at a summer fishing camp on Passamaquoddy Bay. This is Peskotomuhkati homeland, where St. George sits today. ' +
       'The people who governed this land long before Europeans arrived are the Wabanaki.',
     tasks: [
       {
@@ -624,6 +624,16 @@ export const STATIONS = [
       },
     ],
   },
+];
+
+// The opening, one line at a time over the sunrise. It hints at the name without giving it away:
+// the first question at the dawn camp asks what Wabanaki means.
+export const DAWN_LINES = [
+  'The sun rises in the east.',
+  'On this coast, it reaches the land first.',
+  'The people here have a name that comes from the sunrise.',
+  'Five nations along this coast and its rivers joined together as allies: the Wabanaki Confederacy.',
+  'Your path starts here, at dawn.',
 ];
 
 // The unit's big question, shown on the title screen and the finish.

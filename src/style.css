@@ -240,7 +240,8 @@ body.wide-panel #string { right: calc(min(760px, 100vw - 440px) + 28px); }
 .linkish { border: 0; background: none; padding: 0; color: var(--purple); text-decoration: underline; cursor: pointer; font-weight: 700; }
 
 body.travelling #panel { opacity: .35; pointer-events: none; }
-body.titled #panel, body.titled #string, body.titled .caption { display: none; }
+body.titled #panel, body.titled #string, body.titled .caption,
+body.intro #panel, body.intro #string, body.intro .caption { display: none; }
 
 /* ------------------------------------------------ the homelands map */
 .mapcard {
@@ -272,6 +273,29 @@ body.titled #panel, body.titled #string, body.titled .caption { display: none; }
 .map-chip { font-size: 17px; padding: 9px 16px; }
 .map-chip.picked { border-color: var(--purple); background: var(--purple-soft); box-shadow: 0 0 0 2px var(--purple); }
 body.mapping #string, body.mapping .caption { visibility: hidden; }
+
+/* ------------------------------------------------ the title, over the bay before sunrise */
+.titlescreen { position: fixed; inset: 0; z-index: 10; display: flex; align-items: flex-end; padding: 0 0 9vh 7vw;
+  background: radial-gradient(120% 90% at 0% 100%, rgba(10,14,32,.78), rgba(10,14,32,.35) 45%, rgba(10,14,32,0) 70%); }
+.titlescreen[hidden] { display: none; }
+.title-inner { max-width: 560px; color: var(--shell); text-shadow: 0 1px 12px rgba(5,8,20,.6); }
+.title-inner .eyebrow { color: var(--gold); opacity: .9; }
+.title-inner h1 { font-size: clamp(44px, 7vw, 76px); line-height: 1; margin: 6px 0 14px; color: var(--shell);
+  font-variation-settings: 'SOFT' 100, 'opsz' 144; }
+.title-inner .beadband { position: static; width: 220px; height: 9px; border-radius: 2px; margin-bottom: 18px; }
+.title-inner .lede { color: var(--shell); font-size: 23px; margin: 0; }
+.title-inner .small { color: rgba(246,240,225,.72); max-width: 470px; line-height: 1.5; margin-top: 18px; }
+.primary.dawn { background: var(--gold); color: var(--ink); box-shadow: 0 2px 0 #9c7426, 0 0 26px rgba(233,180,76,.35); font-size: 17px; padding: 13px 26px; }
+.primary.dawn:hover { background: #f1c56a; }
+.btn-ghost { background: transparent; color: var(--shell); border: 1px solid rgba(246,240,225,.45); border-radius: 99px; padding: 11px 20px; font-weight: 700; cursor: pointer; }
+.btn-ghost:hover { background: rgba(246,240,225,.12); }
+.dawn-line { position: fixed; left: 50%; top: 24vh; transform: translateX(-50%); z-index: 9; width: min(760px, 86vw); margin: 0;
+  text-align: center; font: 500 clamp(24px, 3.2vw, 38px)/1.3 var(--display); color: #fff8ec; opacity: 0; pointer-events: none;
+  text-shadow: 0 1px 3px rgba(40,20,30,.55), 0 2px 22px rgba(40,20,30,.7);
+  padding: 18px 28px; background: radial-gradient(closest-side, rgba(28,18,34,.32), rgba(28,18,34,0)); }
+body:not(.intro) .dawn-line { display: none; }
+.skip { position: fixed; right: 24px; bottom: 22px; z-index: 11; }
+.skip[hidden] { display: none; }
 
 /* ------------------------------------------------ title and finish */
 .overlay { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; padding: 16px;

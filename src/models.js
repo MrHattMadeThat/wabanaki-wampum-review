@@ -22,6 +22,12 @@ const BUILDERS = {
   trade_kettle: () => P.buildKettle(),
   basket: () => P.buildBasket(),
   bench: () => P.buildBench(),
+  fish_rack: () => P.buildFishRack(),
+  shore_rocks: () => P.buildShoreRocks(),
+  driftwood: () => P.buildDriftwood(),
+  canoe_paddle: () => P.buildPaddle(),
+  porpoise: () => P.buildPorpoise(),
+  gull: () => P.buildGull(),
 };
 
 let manifest = {};
@@ -29,6 +35,7 @@ const loader = new GLTFLoader();
 const cache = new Map();
 
 export async function loadManifest() {
+  if (new URLSearchParams(location.search).has('procedural')) return; // compare against the stand-ins
   try {
     const r = await fetch('models/manifest.json', { cache: 'no-cache' });
     if (r.ok) manifest = (await r.json()).models || {};

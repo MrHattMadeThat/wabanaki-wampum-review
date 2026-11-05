@@ -80,16 +80,128 @@ function assembly(model, names) {
   };
 }
 
+// ------------------------------------------------------------------ small living things
+
+let puffTex;
+function puffTexture() {
+  if (puffTex) return puffTex;
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d');
+  const r = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(0.5, 'rgba(255,255,255,0.45)'); r.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = r; g.fillRect(0, 0, 64, 64);
+  puffTex = new THREE.CanvasTexture(c);
+  return puffTex;
+}
+
+// A thin column of smoke: soft puffs that rise, spread and fade, leaning a little with the wind.
+export function smoke(parent, at, { count = 14, rise = 0.45, life = 9, size = 1.6, wind = [0.12, 0, -0.05] } = {}) {
+  const puffs = [];
+  for (let i = 0; i < count; i++) {
+    const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: puffTexture(), color: '#b9b2ab', transparent: true, depthWrite: false, opacity: 0 }));
+    m.userData.age = (i / count) * life;
+    parent.add(m);
+    puffs.push(m);
+  }
+  return (dt) => {
+    for (const m of puffs) {
+      const a = (m.userData.age = (m.userData.age + dt) % life) / life;
+      m.position.set(at[0] + wind[0] * a * life + Math.sin(a * 9 + m.id) * 0.1 * a, at[1] + rise * a * life, at[2] + wind[2] * a * life);
+      m.scale.setScalar(0.35 + size * a);
+      m.material.opacity = Math.sin(Math.PI * Math.min(1, a * 1.4)) * 0.3 * (1 - a);
+    }
+  };
+}
+
 const BUILD = {
+  // A summer fishing camp on the beach at sunrise: the canoe pulled up out of the water, a fire, a wigwam,
+  // fish drying on a rack. Gulls overhead, porpoises surfacing out in the bay.
   async dawn(ctx) {
     const s = base(ctx, 'dawn');
+    const a = ANCHORS.dawn, gy = s.group.position.y;
+    const put = (o, x, z, ry = 0, dy = 0) => {
+      o.position.set(x, ctx.heightAt(a.at[0] + x, a.at[1] + z) - gy + dy, z);
+      o.rotation.y = ry;
+      s.group.add(o);
+      return o;
+    };
     const canoe = await ctx.make('canoe_birch');
-    canoe.position.set(0, -0.12, 0);
-    canoe.rotation.y = 0.35;
-    s.group.add(canoe);
+    put(canoe, 3.4, 0.4, 0.12, 0.02);
+    canoe.rotation.z = -0.16; // resting on the slope of the beach, bow to the water
+    const paddle = await ctx.make('canoe_paddle');
+    paddle.position.set(0.3, 0.4, 0); paddle.rotation.set(0.05, Math.PI / 2 - 0.2, 0);
+    canoe.add(paddle);
+
+    const wig = await ctx.make('wigwam');
+    put(wig, -1, -8.5, Math.PI / 2 + 0.2);
+    const wig2 = await ctx.make('wigwam');
+    put(wig2, 3.5, -15, Math.PI / 2 - 0.3);
+    const fire = await ctx.make('council_fire');
+    put(fire, -1.2, -3).scale.setScalar(0.55);
+    const rack = await ctx.make('fish_rack');
+    put(rack, 1.6, 7.4, 0.35);
+
+    const rocks = await ctx.make('shore_rocks');
+    const spots = { rock_1: [4.2, 3.4, 0.3], rock_2: [6.6, -6.4, 1.2], rock_3: [9.5, 7.5, 2.1], rock_4: [11, -11, 0.7] };
+    for (const [name, [x, z, ry]] of Object.entries(spots)) {
+      const r = rocks.getObjectByName(name);
+      if (r) put(r, x, z, ry, -0.15);
+    }
+    const drift = await ctx.make('driftwood');
+    for (const [name, x, z, ry] of [['drift_1', 1.2, -4.6, 0.7], ['drift_2', 0.4, 8.6, -0.4]]) {
+      const d = drift.getObjectByName(name);
+      if (d) put(d, x, z, ry, -0.05);
+    }
+
+    // smoke from the fire and out of the wigwam's smoke hole
+    const fireAt = fire.position, wigAt = wig.position;
+    const smokes = [
+      smoke(s.group, [fireAt.x, fireAt.y + 0.6, fireAt.z], { count: 16, size: 1.8 }),
+      smoke(s.group, [wigAt.x, wigAt.y + 3.5, wigAt.z], { count: 10, size: 1.3, rise: 0.35 }),
+    ];
+    const flame = fire.getObjectByName('flame'), core = fire.getObjectByName('flame_core'), light = fire.getObjectByName('fire_light');
+
+    // porpoises out in the bay, in the path of the sunrise
+    const pods = [];
+    for (const [x, z, period, off] of [[34, -2, 9, 0], [44, 5, 11, 4], [58, -6, 13, 8]]) {
+      const pp = await ctx.make('porpoise');
+      pp.position.set(x, -gy - 2, z);
+      s.group.add(pp);
+      pods.push({ pp, x, z, period, off });
+    }
+    const gulls = [];
+    for (let i = 0; i < 3; i++) {
+      const gl = await ctx.make('gull');
+      s.group.add(gl);
+      gulls.push({ gl, r: 9 + i * 3.5, h: 7 + i * 2.2, speed: 0.22 - i * 0.03, off: i * 2.1, wl: gl.getObjectByName('wing_l'), wr: gl.getObjectByName('wing_r') });
+    }
+
     return {
       ...s,
-      update(dt, t) { canoe.rotation.z = Math.sin(t * 0.9) * 0.03; canoe.rotation.x = Math.sin(t * 0.7) * 0.02; canoe.position.y = -0.12 + Math.sin(t * 1.1) * 0.03; },
+      update(dt, t) {
+        smokes.forEach((f) => f(dt));
+        const f = 1 + Math.sin(t * 13) * 0.08 + Math.sin(t * 7.3) * 0.06;
+        if (flame) flame.scale.set(1, f, 1);
+        if (core) core.scale.set(1, 2 - f, 1);
+        if (light) light.intensity = 3 + f * 1.5;
+        for (const { pp, x, z, period, off } of pods) {
+          const u = ((t + off) % period) / 2.2; // 2.2 s above water, then a long dive
+          if (u > 1) { pp.visible = false; continue; }
+          pp.visible = true;
+          pp.position.set(x + u * 2.6, -gy - 0.42 + Math.sin(Math.PI * u) * 0.5, z);
+          pp.rotation.z = Math.cos(Math.PI * u) * 0.55; // nose up as it rises, down as it dives
+        }
+        for (const gg of gulls) {
+          const ang = t * gg.speed + gg.off;
+          gg.gl.position.set(8 + Math.cos(ang) * gg.r, gg.h + Math.sin(t * 0.4 + gg.off) * 0.6, Math.sin(ang) * gg.r * 0.7);
+          // nose (+x) along the circle, banking in toward its centre
+          gg.gl.rotation.set(-0.25, Math.atan2(-Math.cos(ang) * 0.7, -Math.sin(ang)), 0, 'YXZ');
+          const flap = Math.sin(t * 7 + gg.off) * (Math.sin(t * 0.6 + gg.off) > 0.2 ? 0.5 : 0.08);
+          if (gg.wl) gg.wl.rotation.x = flap;
+          if (gg.wr) gg.wr.rotation.x = -flap;
+        }
+      },
     };
   },
 
@@ -158,13 +270,15 @@ const BUILD = {
       return o;
     };
     s.group.add(wig);
+    const campSmoke = smoke(s.group, [wig.position.x, 3.5, wig.position.z], { count: 10, size: 1.3, rise: 0.35 });
     await place('tool_snowshoes', -1.5, -1.1, 0.9);
     const kettle = await place('trade_kettle', 1.3, -1.4, 0);
     const kt = tag('Traded'); kt.position.set(0, 0.6, 0); kettle.add(kt);
     // the bow and arrow on their bench, turned to face the camera
     const cam = ANCHORS.camp.cam;
     const bow = await place('bow_set', 0, 0, Math.atan2(cam[0], cam[2]));
-    return { ...s, ...assembly(bow, ['bow_wood', 'bow_sinew', 'bow_flint', 'bow_gum']) };
+    const build = assembly(bow, ['bow_wood', 'bow_sinew', 'bow_flint', 'bow_gum']);
+    return { ...s, ...build, update(dt, t) { build.update(dt, t); campSmoke(dt); } };
   },
 
   async messengers(ctx) {

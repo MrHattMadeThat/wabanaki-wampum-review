@@ -2,10 +2,12 @@
 // from the bay at sunrise, up the river, over the portage, and west to the Tree of Peace at sunset.
 // The same direction the Hiawatha Belt reads.
 
-// [x, z] anchors. `water: true` stages float on the river or bay instead of standing on land.
+// [x, z] anchors. `water: true` stages float on the river or bay instead of standing on land; `flat: false`
+// keeps the ground as it is (the cove is already gentle) instead of levelling a stage.
 // `cam` and `look` are offsets from the anchor for the camera at that stop.
 export const ANCHORS = {
-  dawn: { at: [322, 2], water: true, cam: [-7.5, 2.4, 4], look: [8, 1.2, -1] },
+  // a summer fishing camp on the beach, looking east over it to the bay and the sunrise
+  dawn: { at: [270, 40], flat: false, cam: [-9, 2.9, 5.5], look: [4, 0.9, -4.5] },
   canoe: { at: [248, 10], cam: [5.5, 4.2, 7.5], look: [0, 1.5, 0] },
   repair: { at: [196, 23], cam: [6, 4.5, 8], look: [0, 0.6, -1] },
   camp: { at: [140, 32], cam: [0.9, 1.3, 2.4], look: [0, 1.0, 0] },
@@ -31,5 +33,12 @@ export const LAKE = { at: [-70, 70], r: 30 };
 
 // Bay: everything east of this x is open water.
 export const BAY_X = 268;
+
+// The cove where the path starts: the coast is a steep bank everywhere else, so this cuts a gentle beach
+// for the dawn camp. `shore` is the x where the beach meets the water.
+export const COVE = { at: [270, 40], r: 36, shore: 275 };
+
+// Where the opening sunrise is watched from: low over the water just off the camp, looking out to sea.
+export const DAWN_VIEW = { eye: [281, 1.5, 41], look: [600, 9, 10] };
 
 export const WORLD = { minX: -360, maxX: 520, minZ: -190, maxZ: 190 };

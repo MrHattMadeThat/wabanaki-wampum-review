@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>The Open Path</title>
-    <meta name="description" content="A 3D walk-through review for the Wabanaki and Wampum unit: from the People of the Dawn to the Tree of Peace." />
+    <meta name="description" content="A 3D walk-through review for the Wabanaki and Wampum unit: from a fishing camp on the bay at sunrise to the Tree of Peace." />
   </head>
   <body class="titled loading">
     <div id="stage"></div>
@@ -34,23 +34,26 @@
       </footer>
     </aside>
 
-    <section id="title-screen" class="overlay">
-      <div class="card">
-        <div class="beadband" aria-hidden="true"></div>
+    <!-- the title waits over the bay in the last of the night; Start brings up the sun -->
+    <section id="title-screen" class="titlescreen">
+      <div class="title-inner">
         <p class="eyebrow">Wabanaki and Wampum &middot; unit review</p>
         <h1>The Open Path</h1>
+        <div class="beadband" aria-hidden="true"></div>
         <p class="lede" id="big-idea"></p>
-        <p>
-          Walk from the People of the Dawn, up the river by canoe, over the portage and west to the Tree of Peace.
-          Every question you answer adds a bead to your string. Get it on the first try and the bead is purple, the rare colour.
-        </p>
-        <p class="small">Drag to look around at each stop. You can drag answers right onto things in the scene.</p>
         <div class="row">
-          <button id="start" class="primary" type="button">Start at dawn</button>
-          <button id="restart" class="secondary" type="button" hidden>Start over</button>
+          <button id="start" class="primary dawn" type="button">Watch the sun rise</button>
+          <button id="restart" class="btn-ghost" type="button" hidden>Start over</button>
         </div>
+        <p class="small">
+          From the bay at sunrise, up the river, over the portage and west to the Tree of Peace. Every answer strings a
+          bead; right on the first try, it&rsquo;s purple, the rare colour.
+        </p>
       </div>
     </section>
+
+    <p id="dawn-line" class="dawn-line" aria-live="polite"></p>
+    <button id="skip" class="btn-ghost skip" type="button" hidden>Skip &#8250;</button>
 
     <section id="finish" class="overlay" hidden>
       <div class="card">

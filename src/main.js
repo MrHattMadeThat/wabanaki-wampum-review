@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
-import { STATIONS, BIG_IDEA } from './content.js';
-import { ANCHORS } from './layout.js';
-import { buildWorld, heightAt, groundAt } from './world.js';
+import { STATIONS, BIG_IDEA, DAWN_LINES } from './content.js';
+import { ANCHORS, DAWN_VIEW } from './layout.js';
+import { buildWorld, heightAt, groundAt, PREDAWN } from './world.js';
 import { loadManifest, makeModel } from './models.js';
 import { buildStation, buildTrail } from './stations.js';
 import { renderTask, clearTask } from './tasks.js';
@@ -48,7 +48,8 @@ controls.enabled = false;
 function resize() {
   const w = host.clientWidth, h = host.clientHeight;
   const panel = $('panel');
-  const open = !document.body.classList.contains('collapsed') && !document.body.classList.contains('titled');
+  const b = document.body.classList;
+  const open = !b.contains('collapsed') && !b.contains('titled') && !b.contains('intro');
   const wide = innerWidth > 820;
   const beside = wide && open ? panel.offsetWidth + 24 : 0;
   const below = !wide && open ? Math.round(h * 0.56) : 0; // phones: the panel is a bottom sheet
@@ -79,6 +80,10 @@ const poses = STATIONS.map((s) => {
 });
 
 // ------------------------------------------------------------------ progress
+
+// The time of day the sky is showing (see world.setTime). Travel starts from wherever it is.
+let skyP = 0;
+function sky(p, focus) { skyP = p; world.setTime(p, focus); }
 
 const SAVE = 'open-path-v3'; // v3: the 2026-11-05 question rework (old saves would mark the wrong questions done)
 function loadSave() {
@@ -290,7 +295,7 @@ function goTo(i, instant = false) {
   clearItemTags();
   $('caption').hidden = true;
   showLabels(-1);
-  const from = { eye: camera.position.clone(), look: controls.target.clone(), p: current / (STATIONS.length - 1) };
+  const from = { eye: camera.position.clone(), look: controls.target.clone(), p: skyP };
   const to = poses[i];
   const dist = from.eye.distanceTo(to.eye);
   const dur = instant ? 0 : reducedMotion ? 0.6 : Math.min(7, 2.4 + dist / 45);
@@ -316,7 +321,7 @@ function stepTravel(dt) {
   controls.target.copy(tmpLook);
   camera.lookAt(tmpLook);
   const p = THREE.MathUtils.lerp(tr.from.p, tr.i / (STATIONS.length - 1), k);
-  world.setTime(p, tmpLook);
+  sky(p, tmpLook);
   if (tr.t >= 1) arrive(tr.i);
 }
 
@@ -341,7 +346,7 @@ function arrive(i) {
   controls.enabled = true;
   document.body.classList.remove('travelling');
   showLabels(i);
-  world.setTime(i / (STATIONS.length - 1), look);
+  sky(i / (STATIONS.length - 1), look);
   openStation(i);
 }
 
@@ -374,6 +379,50 @@ renderer.domElement.addEventListener('pointermove', (e) => {
   renderer.domElement.style.cursor = controller && pickAt(e) ? 'pointer' : '';
 });
 
+// ------------------------------------------------------------------ the opening: sunrise over the bay
+
+// Before Start, the camera waits low over the water in the last of the night. Start brings the sun up out of
+// the bay while a few lines fade in and out, then pulls back over the beach to the camp, and the first question opens.
+const dawnEye = V(DAWN_VIEW.eye), dawnLook = V(DAWN_VIEW.look);
+const LINES = DAWN_LINES.map((text, k) => ({ text, at: [1.0, 4.4, 7.8, 11.4, 16.2][k], hold: [2.8, 2.8, 3.0, 4.2, 3.6][k] }));
+const SUNRISE = 13; // seconds for the sun to clear the water
+const DOLLY_AT = 16.2, DOLLY = reducedMotion ? 0.01 : 4.6;
+let intro = null;
+const introEye = new THREE.Vector3(), introLook = new THREE.Vector3();
+
+function startIntro() {
+  intro = { t: 0 };
+  document.body.classList.add('intro');
+  $('skip').hidden = false;
+}
+function stepIntro(dt) {
+  const t = (intro.t += dt);
+  const rise = Math.min(1, t / SUNRISE);
+  sky(PREDAWN * (1 - rise * rise * (3 - 2 * rise)), poses[0].look); // steady, easing in and out
+  const d = ease(Math.min(1, Math.max(0, (t - DOLLY_AT) / DOLLY)));
+  introEye.lerpVectors(dawnEye, poses[0].eye, d);
+  introEye.y += Math.sin(Math.PI * d) * 1.6 + (1 - d) * Math.sin(t * 0.5) * 0.06; // rise over the canoe; a gentle swell before
+  introLook.lerpVectors(dawnLook, poses[0].look, d);
+  camera.position.copy(introEye);
+  controls.target.copy(introLook);
+  camera.lookAt(introLook);
+  const line = LINES.findLast((l) => t >= l.at);
+  const el = $('dawn-line');
+  if (line) {
+    if (el.textContent !== line.text) el.textContent = line.text;
+    const fade = (x) => Math.min(1, Math.max(0, x / 0.8));
+    el.style.opacity = String(fade(t - line.at) * fade(line.at + line.hold - t));
+  }
+  if (t >= DOLLY_AT + DOLLY + 0.2) endIntro();
+}
+function endIntro() {
+  intro = null;
+  $('dawn-line').style.opacity = '0';
+  $('skip').hidden = true;
+  document.body.classList.remove('intro');
+  arrive(0);
+}
+
 // ------------------------------------------------------------------ title and finish
 
 function start(fresh) {
@@ -381,7 +430,8 @@ function start(fresh) {
   $('title-screen').hidden = true;
   document.body.classList.remove('titled');
   const i = Math.min(save.reached, STATIONS.length - 1);
-  if (i === 0) arrive(0);
+  if (i === 0 && !beadsFor(STATIONS[0].id).some(Boolean)) startIntro(); // first time on the path
+  else if (i === 0) arrive(0);
   else goTo(i);
 }
 
@@ -414,7 +464,8 @@ $('finish-idea').textContent = BIG_IDEA;
 $('start').onclick = () => start(false);
 $('restart').onclick = () => start(true);
 $('restart').hidden = !loadSave();
-$('start').textContent = save.reached > 0 ? 'Continue the path' : 'Start at dawn';
+$('start').textContent = save.reached > 0 ? 'Continue the path' : 'Watch the sun rise';
+$('skip').onclick = () => { if (intro) endIntro(); };
 $('again').onclick = () => { $('finish').hidden = true; start(true); };
 $('collapse').onclick = () => {
   document.body.classList.toggle('collapsed');
@@ -427,10 +478,10 @@ $('collapse').onclick = () => {
 const clock = new THREE.Clock();
 let t = 0;
 resize();
-camera.position.copy(poses[0].eye);
-controls.target.copy(poses[0].look);
-camera.lookAt(poses[0].look);
-world.setTime(0, poses[0].look);
+camera.position.copy(dawnEye);
+controls.target.copy(dawnLook);
+camera.lookAt(dawnLook);
+sky(PREDAWN, poses[0].look);
 showLabels(-1);
 drawString();
 document.body.classList.remove('loading');
@@ -441,12 +492,12 @@ if (jump >= 0) { $('title-screen').hidden = true; document.body.classList.remove
 renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.05);
   t += dt;
-  if (travel) stepTravel(dt);
+  if (intro) stepIntro(dt);
+  else if (travel) stepTravel(dt);
   else if (document.body.classList.contains('titled')) {
-    // slow drift over the bay while the title is up
-    const p = poses[0];
-    camera.position.copy(p.eye).add(new THREE.Vector3(Math.sin(t * 0.1) * 2, 0.5 + Math.sin(t * 0.13) * 0.4, Math.cos(t * 0.1) * 1.5));
-    camera.lookAt(p.look);
+    // rocking gently on the water in the dark while the title is up
+    camera.position.copy(dawnEye).add(new THREE.Vector3(0, Math.sin(t * 0.5) * 0.06, Math.sin(t * 0.13) * 0.4));
+    camera.lookAt(dawnLook);
   } else controls.update();
   const near = travel ? -1 : current;
   stages.forEach((s, i) => { if (Math.abs(i - (near < 0 ? travel.i : near)) <= 1) s.update(dt, t); });
@@ -456,4 +507,4 @@ renderer.setAnimationLoop(() => {
 });
 
 // for checks in the browser console
-window.path = { goTo, arrive, stages, poses, camera, controls, render: () => renderer.render(scene, camera), get current() { return current; }, get save() { return save; } };
+window.path = { goTo, arrive, startIntro, stages, poses, camera, controls, render: () => renderer.render(scene, camera), get current() { return current; }, get save() { return save; } };

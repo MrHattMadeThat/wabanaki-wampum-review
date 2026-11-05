@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { ANCHORS, RIVER, RIVER_WIDTH, LAKE, BAY_X, WORLD } from './layout.js';
+import { ANCHORS, RIVER, RIVER_WIDTH, LAKE, BAY_X, COVE, WORLD } from './layout.js';
 
 // ------------------------------------------------------------------ noise
 
@@ -58,6 +58,9 @@ function rawHeight(x, z) {
   }
   // bay
   h = mix(h, -7, smooth(BAY_X - 12, BAY_X + 30, x));
+  // the cove: a gentle beach where the steep bank would be (only ever lowers the land)
+  const dc = Math.hypot(x - COVE.at[0], z - COVE.at[1]);
+  if (dc < COVE.r) h = mix(h, Math.min(h, 0.15 - 0.17 * (x - COVE.shore)), 1 - smooth(COVE.r * 0.5, COVE.r, dc));
   // lake
   const dl = Math.hypot(x - LAKE.at[0], z - LAKE.at[1]);
   h = mix(-3, h, smooth(LAKE.r * 0.7, LAKE.r * 1.25, dl));
@@ -66,7 +69,7 @@ function rawHeight(x, z) {
 
 // Each stop gets a flat stage, so props stand level.
 const stages = Object.values(ANCHORS)
-  .filter((a) => !a.water)
+  .filter((a) => !a.water && a.flat !== false)
   .map((a) => ({ x: a.at[0], z: a.at[1], h: Math.max(0.7, rawHeight(a.at[0], a.at[1])) }));
 
 export function heightAt(x, z) {
@@ -96,8 +99,12 @@ export function groundAt(x, z) {
 // ------------------------------------------------------------------ time of day
 
 // p runs 0 → 1 along the path: sunrise in the east, noon over the portage, sunset in the west.
+// Below 0 is the moment before sunrise that the title screen and the opening start from.
+export const PREDAWN = -0.08;
 const SKY_KEYS = [
-  { p: 0.0, elev: 4, zen: '#56709f', hor: '#f4b58e', sun: '#ffb27c', sunI: 2.4, hemi: '#cbb9d8', fog: '#e7c2ad' },
+  { p: PREDAWN, elev: -7, zen: '#0c1230', hor: '#7d5a72', sun: '#ff9060', sunI: 0.12, hemi: '#4a5a86', fog: '#3b4262' },
+  { p: -0.03, elev: -0.6, zen: '#33457e', hor: '#ff9360', sun: '#ff7a3a', sunI: 0.9, hemi: '#9a86a8', fog: '#c98e82' },
+  { p: 0.0, elev: 4, zen: '#4a64a0', hor: '#f7a676', sun: '#ffac6a', sunI: 2.4, hemi: '#c8b4d4', fog: '#dcaa93' },
   { p: 0.45, elev: 58, zen: '#4d88c7', hor: '#cfe2ee', sun: '#fff3df', sunI: 2.8, hemi: '#d8ecff', fog: '#d4e4ec' },
   { p: 1.0, elev: 7, zen: '#3e4f86', hor: '#f2a463', sun: '#ff9758', sunI: 2.3, hemi: '#d9b8a8', fog: '#e8ae84' },
 ];
@@ -121,19 +128,27 @@ export function buildWorld(scene, renderer) {
   const skyU = {
     zen: { value: new THREE.Color() }, hor: { value: new THREE.Color() },
     sunDir: { value: new THREE.Vector3(1, 0.1, 0) }, sunCol: { value: new THREE.Color() },
+    night: { value: 0 },
   };
   const sky = new THREE.Mesh(
     new THREE.SphereGeometry(2000, 32, 16),
     new THREE.ShaderMaterial({
       side: THREE.BackSide, depthWrite: false, fog: false, uniforms: skyU,
       vertexShader: `varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); gl_Position.z = gl_Position.w; }`,
-      fragmentShader: `uniform vec3 zen, hor, sunDir, sunCol; varying vec3 vDir;
+      fragmentShader: `uniform vec3 zen, hor, sunDir, sunCol; uniform float night; varying vec3 vDir;
+        float hash3(vec3 p){ return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
         void main(){
           vec3 d = normalize(vDir);
           float h = max(d.y, 0.0);
           vec3 c = mix(hor, zen, pow(h, 0.55));
           float s = max(dot(d, normalize(sunDir)), 0.0);
           c += sunCol * (pow(s, 900.0) * 3.0 + pow(s, 12.0) * 0.35 + pow(s, 3.0) * 0.12 * (1.0 - h));
+          // stars before dawn, fading out toward the sunrise side and the horizon
+          if (night > 0.0) {
+            vec3 cell = floor(d * 420.0);
+            float st = step(0.9982, hash3(cell)) * (0.5 + 0.5 * hash3(cell + 7.0));
+            c += vec3(0.9, 0.92, 1.0) * st * night * smoothstep(0.04, 0.3, d.y) * (1.0 - pow(s, 4.0));
+          }
           if (d.y < 0.0) c = hor * 0.92;
           gl_FragColor = vec4(c, 1.0);
           #include <tonemapping_fragment>
@@ -249,6 +264,7 @@ export function buildWorld(scene, renderer) {
     sun.color.copy(skyU.sunCol.value);
     sun.intensity = lerpKey(p, 'sunI');
     hemi.color.copy(lerpKey(p, 'hemi', tmp));
+    skyU.night.value = 1 - smooth(PREDAWN, PREDAWN * 0.25, p);
     scene.fog.color.copy(lerpKey(p, 'fog', tmp));
     // keep the shadow box on whatever the camera is looking at
     sun.target.position.copy(focus);
@@ -265,6 +281,7 @@ export function buildWorld(scene, renderer) {
 
 function nearStage(x, z, r) {
   for (const a of Object.values(ANCHORS)) if (Math.hypot(x - a.at[0], z - a.at[1]) < r) return true;
+  if (Math.hypot(x - COVE.at[0], z - COVE.at[1]) < 16 && r > 8) return true; // keep the beach open
   return false;
 }
 

@@ -42,6 +42,15 @@ framework, same stack as `../st-george-3d`. Started 2026-11-05. Read `README.md`
   and return as each is answered. The story stones light in three steps as the story questions are answered
   (`stones` in content.js names them). Back / Next and one dot per question sit in the panel header
   (`drawNav` in main.js); Back from a stop's first question travels to the previous stop's last question.
+- The opening (2026-11-05): the title waits over the bay before sunrise (`PREDAWN` sky key, stars). Start
+  runs `stepIntro` in main.js: the sun comes up while `DAWN_LINES` (content.js) fade in and out, then the camera
+  pulls back from `DAWN_VIEW` to the dawn camp and the first question opens. Skip ends it; students with an
+  answer saved go straight to their stop. The lines hint at the name but never say "People of the Dawn",
+  and the first stop is titled "First light", because question 1 asks what Wabanaki means.
+- The dawn stop is a fishing camp on a beach cut by `COVE` (layout.js; the coast is a steep bank elsewhere).
+  `flat: false` leaves its ground unlevelled, so each prop is set on the ground where it stands. Smoke
+  (`smoke()` in stations.js), gulls and surfacing porpoises are code; the props are stand-ins for Codex's
+  priority 4 models.
 - The trail is an earth ribbon laid on the ground mesh as drawn (`groundAt` in world.js, which matches the
   mesh's own triangles), not on the smooth height function, so it never sinks in.
 - The Hiawatha Belt pattern is traced from a 1909 photograph and the Haudenosaunee flag drawn from it: a solid
