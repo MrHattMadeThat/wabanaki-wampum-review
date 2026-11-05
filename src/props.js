@@ -192,70 +192,65 @@ const pickBox = () => {
 
 export const BELT = { cols: 173, rows: 38 }; // 6,574 beads, one of the two counts in the reading
 
-// The pattern. c runs west (0) to east (172); r runs bottom (0) to top (37), and the top points north.
-const SQUARES = [148, 116, 56, 24]; // Mohawk, Oneida, Cayuga, Seneca (east to west)
-const TREE = 86;
-function inSquare(c, r, cx) {
-  const dx = Math.abs(c - cx), dy = Math.abs(r - 18.5);
-  return { edge: Math.max(dx, dy) <= 11 && Math.max(dx, dy) > 8, inside: Math.max(dx, dy) <= 8 };
+// The pattern, traced from a 1909 photograph of the belt and the Haudenosaunee flag drawn from it.
+// c runs west (0) to east (172); t counts rows down from the top edge (0..37), and the top points north.
+// Wampum beads are about twice as long as they are wide, so one column is half as wide as one row is tall.
+const OUTER = [155, 17]; // Mohawk (east) and Seneca (west)
+const INNER = [118, 54]; // Oneida and Cayuga
+const TREE = 86; // the Onondaga, in the centre
+function square(c, t, cx, half, top, bottom) {
+  const dx = Math.abs(c - cx);
+  if (dx > half || t < top || t > bottom) return null;
+  return dx > half - 3 || t < top + 2 || t > bottom - 2 ? 'edge' : 'inside'; // sides 3 beads wide, 2 rows deep
 }
-function inTree(c, r) {
+function inTree(c, t) {
   const dx = Math.abs(c - TREE);
-  if (dx <= 1 && r >= 4 && r <= 20) return true; // trunk
-  if (r >= 4 && r <= 6 && dx <= 6 && dx >= 4 - (r - 4)) return true; // roots, reaching out
-  const w = 11 - Math.abs(r - 24) * 0.95; // a broad crown
-  if (r >= 14 && r <= 34 && dx <= w && dx > w - 3.2) return true;
-  return false;
+  if (t >= 27 && t <= 32) return dx <= 1; // the stem
+  if (t < 10 || t > 27) return false;
+  // a solid diamond, pointed at the top and bottom, widest a little below its middle
+  const half = t <= 19 ? (12 * (t - 10)) / 9 : (12 * (27 - t)) / 8;
+  return dx <= half + 0.4;
 }
-function isWhite(c, r) {
-  for (const cx of SQUARES) {
-    const s = inSquare(c, r, cx);
-    if (s.edge) return true;
-    if (s.inside) return false;
-  }
-  if (inTree(c, r)) return true;
-  const inCrown = r >= 14 && r <= 34 && Math.abs(c - TREE) <= 11 - Math.abs(r - 24) * 0.95 - 3.2;
-  if (inCrown) return false;
-  return r >= 17 && r <= 20; // the path of peace, out past both ends
+function isWhite(c, t) {
+  for (const cx of OUTER) { const s = square(c, t, cx, 9, 13, 24); if (s) return s === 'edge'; }
+  for (const cx of INNER) { const s = square(c, t, cx, 12, 12, 25); if (s) return s === 'edge'; }
+  if (inTree(c, t)) return true;
+  // the path of peace: out to both ends between the squares, and a little lower where it meets the tree
+  const between = c > INNER[1] + 12 && c < INNER[0] - 12;
+  if (!between) return t === 18 || t === 19;
+  return t === 21 || t === 22;
 }
 
 export function buildBelt({ length = 2.2 } = {}) {
   const { cols, rows } = BELT;
-  const pitch = length / cols;
+  const pitch = length / cols; // across one bead
+  const rowPitch = pitch * 2; // along one bead
   const root = new THREE.Group();
   root.name = 'hiawatha_belt';
-  const bead = new THREE.CylinderGeometry(pitch * 0.47, pitch * 0.47, pitch * 0.94, 7, 1);
+  const bead = new THREE.CylinderGeometry(pitch * 0.47, pitch * 0.47, rowPitch * 0.94, 7, 1);
   const beads = new THREE.InstancedMesh(bead, new THREE.MeshStandardMaterial({ roughness: 0.38, metalness: 0.05 }), cols * rows);
   const white = new THREE.Color('#efe9dc'), purple = new THREE.Color('#47284f'), c = new THREE.Color();
   const m = new THREE.Matrix4();
   let i = 0;
-  for (let col = 0; col < cols; col++) for (let r = 0; r < rows; r++) {
-    const x = (col - (cols - 1) / 2) * pitch, y = (r - (rows - 1) / 2) * pitch;
-    m.makeRotationZ((Math.sin(col * 3.1 + r * 1.7) * 0.06)).setPosition(x, y, 0);
+  for (let col = 0; col < cols; col++) for (let t = 0; t < rows; t++) {
+    const x = (col - (cols - 1) / 2) * pitch, y = ((rows - 1) / 2 - t) * rowPitch;
+    m.makeRotationZ(Math.sin(col * 3.1 + t * 1.7) * 0.03).setPosition(x, y, 0);
     beads.setMatrixAt(i, m);
-    c.copy(isWhite(col, r) ? white : purple).offsetHSL(0, 0, (Math.sin(col * 12.9898 + r * 78.233) * 0.5) * 0.04);
+    c.copy(isWhite(col, t) ? white : purple).offsetHSL(0, 0, (Math.sin(col * 12.9898 + t * 78.233) * 0.5) * 0.04);
     beads.setColorAt(i++, c);
   }
   beads.castShadow = beads.receiveShadow = true;
   root.add(beads);
 
   // pickable slots, east (1) to west (5)
-  const slotCols = [148, 116, 86, 56, 24];
-  slotCols.forEach((col, k) => {
-    const x = (col - (cols - 1) / 2) * pitch;
-    const box = new THREE.Mesh(
-      new THREE.BoxGeometry(pitch * 25, pitch * 34, pitch * 2),
-      pickBox(),
-    );
-    box.position.set(x, 0, pitch);
+  [OUTER[0], INNER[0], TREE, INNER[1], OUTER[1]].forEach((col, k) => {
+    const box = new THREE.Mesh(new THREE.BoxGeometry(pitch * 27, rowPitch * 24, pitch * 2), pickBox());
+    box.position.set((col - (cols - 1) / 2) * pitch, ((rows - 1) / 2 - 20) * rowPitch, pitch);
     box.name = `slot_${k + 1}`;
     root.add(box);
   });
-  const line = new THREE.Mesh(
-    new THREE.BoxGeometry(length, pitch * 5, pitch * 2),
-    pickBox(),
-  );
-  line.position.set(0, (18.5 - (rows - 1) / 2) * pitch, pitch * 1.5);
+  const line = new THREE.Mesh(new THREE.BoxGeometry(length, rowPitch * 3, pitch * 2), pickBox());
+  line.position.set(0, ((rows - 1) / 2 - 18.5) * rowPitch, pitch * 1.5);
   line.name = 'belt_line';
   line.renderOrder = 2;
   root.add(line);

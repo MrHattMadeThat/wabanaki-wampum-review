@@ -78,6 +78,21 @@ export function heightAt(x, z) {
   return h;
 }
 
+// The height of the ground mesh as drawn: its flat triangles, not the smooth function above. Anything laid
+// on the ground (the trail) follows this so it never sinks into a triangle.
+let grid = null;
+export function groundAt(x, z) {
+  if (!grid) return heightAt(x, z);
+  const { x0, z0, sx, sz, nx, nz, h } = grid;
+  const gx = (x - x0) / sx, gz = (z - z0) / sz;
+  const ix = Math.min(nx - 1, Math.max(0, Math.floor(gx))), iz = Math.min(nz - 1, Math.max(0, Math.floor(gz)));
+  const fx = gx - ix, fz = gz - iz;
+  const at = (i, j) => h[j * (nx + 1) + i];
+  const ha = at(ix, iz), hb = at(ix, iz + 1), hc = at(ix + 1, iz + 1), hd = at(ix + 1, iz);
+  // PlaneGeometry splits each cell into (a, b, d) and (b, c, d)
+  return fx + fz <= 1 ? ha + (hd - ha) * fx + (hb - ha) * fz : hc + (hb - hc) * (1 - fx) + (hd - hc) * (1 - fz);
+}
+
 // ------------------------------------------------------------------ time of day
 
 // p runs 0 → 1 along the path: sunrise in the east, noon over the portage, sunset in the west.
@@ -165,6 +180,8 @@ export function buildWorld(scene, renderer) {
   }
   g.setAttribute('color', new THREE.BufferAttribute(col, 3));
   g.computeVertexNormals();
+  grid = { x0: WORLD.minX, z0: WORLD.minZ, nx: g.parameters.widthSegments, nz: g.parameters.heightSegments,
+    sx: W / g.parameters.widthSegments, sz: D / g.parameters.heightSegments, h: Float32Array.from({ length: pos.count }, (_, i) => pos.getY(i)) };
   const ground = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 }));
   ground.receiveShadow = true;
   world.add(ground);

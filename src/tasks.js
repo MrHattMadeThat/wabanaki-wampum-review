@@ -186,91 +186,123 @@ function multi(body, fb, task, hooks) {
 
 // ------------------------------------------------------------------ order
 
-// One list. Drag a card by its grip (or anywhere on it), or use its arrows, then check.
+// Two columns in the panel (which widens for it): the cards, shuffled, and a numbered list. Drag a card onto a number
+// (or tap a card, then a number). Dropping on a filled number swaps the two. Check locks the right ones in
+// and sends the rest back to the pile.
 function order(body, fb, task, hooks) {
   const n = task.items.length;
-  let seq = shuffle(task.items.map((_, i) => i));
-  while (seq.every((v, i) => v === i)) seq = shuffle(seq);
-  const list = el('ol', 'sortable');
-  const check = button('primary small', 'Check the order');
-  let tries = 0, solved = false, marks = false;
+  const pileOrder = shuffle(task.items.map((_, i) => i));
+  const slots = Array(n).fill(null); // which item sits at each number
+  const locked = Array(n).fill(false);
+  let selected = null, tries = 0, solved = false, over = null;
 
-  function draw() {
-    list.replaceChildren(...seq.map((it, pos) => {
-      const li = el('li', 'sort-card');
-      if (marks) li.classList.add(it === pos ? 'right' : 'off');
-      li.dataset.it = it;
-      li.append(el('span', 'grip', '⠇'), el('span', 'sort-text', task.items[it]));
-      if (!solved) {
-        const up = button('nudge', '↑'), down = button('nudge', '↓');
-        up.setAttribute('aria-label', 'Move up'); down.setAttribute('aria-label', 'Move down');
-        up.disabled = pos === 0; down.disabled = pos === n - 1;
-        up.onclick = () => move(pos, pos - 1);
-        down.onclick = () => move(pos, pos + 1);
-        const arrows = el('span', 'nudges');
-        arrows.append(up, down);
-        li.append(arrows);
-        dragSort(li);
-      }
-      return li;
-    }));
-  }
-  function move(from, to) {
-    if (to < 0 || to >= n) return;
-    const [v] = seq.splice(from, 1);
-    seq.splice(to, 0, v);
-    marks = false;
+  const board = el('div', 'orderboard');
+  const pileCol = el('section', 'board-col pile');
+  const listCol = el('section', 'board-col');
+  const check = button('primary small', 'Check the order');
+  const listHead = el('div', 'board-head');
+  listHead.append(el('h2', null, 'In order'), check);
+  pileCol.append(el('h2', null, 'Cards'));
+  const pile = el('div', 'pile-cards');
+  const list = el('ol', 'order-slots');
+  pileCol.append(pile);
+  listCol.append(listHead, list);
+  board.append(pileCol, listCol);
+  body.append(el('p', 'hint', 'Drag the cards onto the numbers, or tap a card and then a number. Drop on a filled number to swap.'), board);
+  document.body.classList.add('wide-panel');
+  dispatchEvent(new Event('resize')); // re-frame the scene beside the wider panel
+  cleanup = () => { document.body.classList.remove('wide-panel'); dispatchEvent(new Event('resize')); };
+
+  const slotOf = (it) => slots.indexOf(it);
+  const targetAt = (x, y) => {
+    for (const e of document.elementsFromPoint(x, y)) {
+      if (e.dataset?.slot != null) return { slot: +e.dataset.slot };
+      if (e === pileCol || pileCol.contains(e)) return { pile: true };
+    }
+    return null;
+  };
+  // Put item `it` at slot `to` (or back in the pile when `to` is null). A card already there goes where `it` came from.
+  function place(it, to) {
+    const from = slotOf(it);
+    if (to != null) {
+      if (locked[to] || from === to) return;
+      const there = slots[to];
+      slots[to] = it;
+      if (from >= 0) slots[from] = there; // swap, or leave the old number empty
+    } else if (from >= 0) {
+      if (locked[from]) return;
+      slots[from] = null;
+    }
+    selected = null;
     fb.clear();
     draw();
-    list.children[to]?.querySelector('.nudge')?.focus({ preventScroll: true });
   }
-  // Drag: as the pointer passes over another card, the dragged card takes its place.
-  function dragSort(li) {
-    li.addEventListener('pointerdown', (e) => {
-      if (e.target.closest('.nudge')) return;
-      li.setPointerCapture(e.pointerId);
-      li.classList.add('lifted');
-      const onMove = (ev) => {
-        const over = document.elementsFromPoint(ev.clientX, ev.clientY).find((x) => x.classList?.contains('sort-card') && x !== li);
-        if (!over) return;
-        const to = [...list.children].indexOf(over), from = [...list.children].indexOf(li);
-        const [v] = seq.splice(from, 1);
-        seq.splice(to, 0, v);
-        list.insertBefore(li, to > from ? over.nextSibling : over);
-        marks = false;
-        fb.clear();
-      };
-      const onUp = () => {
-        li.classList.remove('lifted');
-        li.removeEventListener('pointermove', onMove);
-        li.removeEventListener('pointerup', onUp);
-        li.removeEventListener('pointercancel', onUp);
-        draw();
-      };
-      li.addEventListener('pointermove', onMove);
-      li.addEventListener('pointerup', onUp);
-      li.addEventListener('pointercancel', onUp);
+
+  function card(it) {
+    const c = button('order-card', task.items[it]);
+    const at = slotOf(it);
+    if (at >= 0 && locked[at]) { c.classList.add('right'); c.disabled = true; return c; }
+    if (selected === it) c.classList.add('picked');
+    draggable(c, task.items[it], {
+      onMove: (x, y) => {
+        const t = targetAt(x, y);
+        const id = t?.slot ?? null;
+        if (over !== id) { list.querySelector('.over')?.classList.remove('over'); over = id; if (id != null) list.children[id]?.classList.add('over'); }
+      },
+      onDrop: (x, y) => {
+        list.querySelector('.over')?.classList.remove('over'); over = null;
+        const t = targetAt(x, y);
+        if (t?.slot != null) place(it, t.slot);
+        else if (t?.pile) place(it, null);
+      },
+      onTap: () => { selected = selected === it ? null : it; draw(); },
     });
+    return c;
   }
+
+  function draw() {
+    pile.replaceChildren(...pileOrder.filter((it) => slotOf(it) < 0).map(card));
+    if (!pile.children.length) pile.append(el('p', 'pile-empty', solved ? 'All in order.' : 'All placed. Check the order.'));
+    list.replaceChildren(...slots.map((it, k) => {
+      const li = el('li', `order-slot${it == null ? ' empty' : ''}${locked[k] ? ' right' : ''}`);
+      li.dataset.slot = k;
+      li.append(el('span', 'slot-num', String(k + 1)));
+      if (it == null) li.append(el('span', 'slot-hint', selected != null ? 'Tap to put it here' : ''));
+      else li.append(card(it));
+      li.onclick = (e) => {
+        if (selected == null || e.target.closest('.order-card')) return;
+        place(selected, k);
+      };
+      return li;
+    }));
+    check.disabled = solved || slots.includes(null);
+  }
+  pileCol.addEventListener('click', (e) => {
+    if (selected != null && slotOf(selected) >= 0 && !e.target.closest('.order-card')) place(selected, null);
+  });
 
   check.onclick = () => {
     tries++;
-    marks = true;
-    const right = seq.filter((it, pos) => it === pos).length;
+    let right = 0;
+    slots.forEach((it, k) => {
+      if (it === k) { locked[k] = true; right++; } else if (!locked[k]) slots[k] = null;
+    });
     if (right === n) {
       solved = true;
       check.remove();
       body.querySelector('.hint')?.remove();
+      // the pile is empty now: show the finished order on its own, in two short columns
+      pileCol.remove();
+      board.classList.add('solved');
+      list.style.gridTemplateRows = `repeat(${Math.ceil(n / 2)}, auto)`;
       draw();
       fb.solved('That’s the order.', task.explain);
       hooks.done({ firstTry: tries === 1 });
       return;
     }
-    fb.say(`${right} of ${n} are in the right place (green). Move the others and check again.`, 'bad');
     draw();
+    fb.say(`${right} of ${n} are in the right place, and they’re locked in green. The rest are back with the cards. Try again.`, 'bad');
   };
-
-  body.append(el('p', 'hint', 'Drag the cards into order, or use the arrows. Top is first.'), list, check);
   draw();
 }
 

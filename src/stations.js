@@ -112,7 +112,7 @@ const BUILD = {
     // a crack in the plastic hull
     const crack = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.03, 0.01), new THREE.MeshBasicMaterial({ color: '#1d1a17' }));
     crack.position.set(0.3, 0.16, 0.48); crack.rotation.z = 0.3;
-    plastic.add(crack);
+    if (plastic.userData.source !== 'glb') plastic.add(crack); // the Blender model has its own
     const t1 = tag('Birch bark'); t1.position.set(0, 1.0, 0); birch.add(t1);
     const t2 = tag('Store-bought'); t2.position.set(0, 1.0, 0); plastic.add(t2);
     // leaks: drips under each canoe
@@ -310,6 +310,9 @@ const BUILD = {
     whelk.position.set(-0.05, 0.59, 0.05);
     const quahog = await ctx.make('shell_quahog');
     quahog.position.set(0.42, 0.6, 0.0);
+    // the Blender quahog's open valve faces Blender +Y, which is away from this camera: turn it round
+    const face = quahog.userData.source === 'glb' ? Math.PI : 0;
+    quahog.rotation.y = face;
     const basket = await ctx.make('basket');
     basket.position.set(-1.2, 0, 0.5);
     const beads = buildBeadString(30, 0.03);
@@ -324,11 +327,13 @@ const BUILD = {
       picks: ['shell_whelk', 'shell_quahog'],
       update(dt, t) {
         quahog.position.y = 0.6 + show * (0.25 + Math.sin(t * 1.5) * 0.02);
-        quahog.rotation.y = show * t * 0.6;
-        quahog.rotation.x = show * -0.6;
+        // lift it and tip the purple inside edge toward the student, swaying a little
+        quahog.rotation.y = face + show * Math.sin(t * 0.8) * 0.35;
+        quahog.rotation.x = show * 0.5;
       },
       react(e) {
         if (e.type === 'option' || e.type === 'select') light(e.pick);
+        if (e.type === 'task-done') light(null); // the glow would wash out the purple edge
         if (e.type === 'task-done' && e.index === 0) show = 1;
         if (e.type === 'task-start' && e.index === 0) show = 0;
       },
@@ -342,18 +347,18 @@ const BUILD = {
     house.position.set(0, 0, -13);
     s.group.add(house);
     const belt = await ctx.make('hiawatha_belt');
-    belt.position.set(0, 1.12, 0);
+    belt.position.set(0, 1.2, 0);
     belt.rotation.x = -0.42;
     s.group.add(belt);
     const wood = new THREE.MeshStandardMaterial({ color: '#6b4d34' });
     for (const x of [-1.25, 1.25]) {
-      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 1.4, 6), wood);
-      post.position.set(x, 0.7, -0.15);
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 1.8, 6), wood);
+      post.position.set(x, 0.9, -0.2);
       post.castShadow = true;
       s.group.add(post);
     }
     const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 2.6, 6).rotateZ(Math.PI / 2), wood);
-    bar.position.set(0, 1.36, -0.12);
+    bar.position.set(0, 1.72, -0.2);
     s.group.add(bar);
     const ends = [tag('east →', 'dir'), tag('← west', 'dir')];
     ends[0].position.set(1.28, 0.08, 0); ends[1].position.set(-1.28, 0.08, 0);
@@ -415,32 +420,77 @@ export async function buildStation(id, ctx) {
   return { picks: [], update() {}, react() {}, ...st };
 }
 
-// The path of peace: a white bead line four beads wide, from the portage west past the Tree of Peace,
-// left open at the end the way the belt's line is.
-export function buildBeadPath(scene, heightAt) {
+// The trail: a worn earth footpath from the portage west past the Tree of Peace, running on out of sight
+// the way the belt's path is left open. A ribbon laid on the ground mesh, its edges fading into the grass.
+let dirtTex;
+function dirt() {
+  if (dirtTex) return dirtTex;
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const g = c.getContext('2d');
+  g.fillStyle = '#a48b68'; g.fillRect(0, 0, 256, 256);
+  let s = 11;
+  const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 2600; i++) { // grit
+    const v = 120 + r() * 70;
+    g.fillStyle = `rgba(${v},${v * 0.86},${v * 0.66},${0.25 + r() * 0.35})`;
+    g.fillRect(r() * 256, r() * 256, 1 + r() * 2, 1 + r() * 2);
+  }
+  for (let i = 0; i < 70; i++) { // pebbles
+    const v = 130 + r() * 60;
+    g.fillStyle = `rgb(${v},${v * 0.97},${v * 0.92})`;
+    g.beginPath(); g.ellipse(r() * 256, r() * 256, 1.5 + r() * 3, 1 + r() * 2, r() * 3, 0, Math.PI * 2); g.fill();
+  }
+  for (let i = 0; i < 12; i++) { // worn darker patches
+    g.fillStyle = `rgba(90,70,48,${0.08 + r() * 0.1})`;
+    g.beginPath(); g.ellipse(r() * 256, r() * 256, 20 + r() * 40, 8 + r() * 20, r() * 3, 0, Math.PI * 2); g.fill();
+  }
+  dirtTex = new THREE.CanvasTexture(c);
+  dirtTex.colorSpace = THREE.SRGBColorSpace;
+  dirtTex.wrapS = dirtTex.wrapT = THREE.RepeatWrapping;
+  dirtTex.anisotropy = 4;
+  return dirtTex;
+}
+
+export function buildTrail(scene, groundAt) {
   const ids = ['portage', 'crossing', 'story', 'fire', 'shells', 'belt', 'council', 'tree'];
   const pts = ids.map((id) => new THREE.Vector3(ANCHORS[id].at[0], 0, ANCHORS[id].at[1] + 6));
   pts.push(new THREE.Vector3(-300, 0, 4), new THREE.Vector3(-345, 0, 0));
-  const curve = new THREE.CatmullRomCurve3(pts);
+  const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
   const len = curve.getLength();
-  const step = 0.42, n = Math.floor(len / step);
-  const g = new THREE.CylinderGeometry(0.06, 0.06, 0.4, 6).rotateX(Math.PI / 2);
-  const mesh = new THREE.InstancedMesh(g, new THREE.MeshStandardMaterial({ color: '#f1ece0', roughness: 0.45 }), n * 4);
-  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0);
-  let k = 0;
-  for (let i = 0; i < n; i++) {
-    const p = curve.getPointAt(i / n), t = curve.getTangentAt(i / n);
-    t.y = 0; t.normalize();
-    const side = new THREE.Vector3().crossVectors(up, t);
-    q.setFromUnitVectors(new THREE.Vector3(0, 0, 1), t);
-    for (let r = 0; r < 4; r++) {
-      const o = (r - 1.5) * 0.13;
-      const x = p.x + side.x * o, z = p.z + side.z * o;
-      m.compose(new THREE.Vector3(x, Math.max(heightAt(x, z), 0) + 0.06, z), q, new THREE.Vector3(1, 1, 1));
-      mesh.setMatrixAt(k++, m);
+  const n = Math.ceil(len / 0.6);
+  const across = [-1, -0.55, 0, 0.55, 1]; // fraction of the half-width
+  const alpha = [0, 0.8, 1, 0.8, 0]; // soft edges
+  const pos = [], uv = [], col = [], idx = [];
+  const up = new THREE.Vector3(0, 1, 0), side = new THREE.Vector3();
+  for (let i = 0; i <= n; i++) {
+    const u = i / n, p = curve.getPointAt(u), t = curve.getTangentAt(u).setY(0).normalize();
+    side.crossVectors(up, t);
+    const half = 0.85 + 0.2 * Math.sin(u * 97) + 0.1 * Math.sin(u * 311); // the path wanders in width
+    across.forEach((a, j) => {
+      const x = p.x + side.x * a * half, z = p.z + side.z * a * half;
+      pos.push(x, Math.max(groundAt(x, z), 0) + 0.04, z);
+      uv.push((a + 1) * 0.5, (u * len) / 2.2);
+      const shade = 0.92 + 0.08 * Math.sin(u * 53 + j);
+      col.push(shade, shade, shade, alpha[j]);
+    });
+    if (i < n) {
+      const b = i * 5;
+      for (let j = 0; j < 4; j++) idx.push(b + j, b + j + 5, b + j + 1, b + j + 1, b + j + 5, b + j + 6);
     }
   }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 4));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  const mesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({
+    map: dirt(), vertexColors: true, transparent: true, depthWrite: false, roughness: 1,
+    polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
+  }));
   mesh.receiveShadow = true;
+  mesh.renderOrder = -2; // before the water and the canoes' water masks
   scene.add(mesh);
   return mesh;
 }

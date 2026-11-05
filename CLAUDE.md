@@ -31,6 +31,14 @@ framework, same stack as `../st-george-3d`. Started 2026-11-05. Read `README.md`
   1366×650 (a 768px laptop with browser bars), before answering, after a wrong answer, or once solved. Re-check
   that whenever content or styles change. Match questions with picks get numbered labels on the 3D parts
   (`addItemTags` in main.js), and answers can be dragged onto those labels or the parts themselves.
+- Ordering questions show two columns (cards, numbered list) inside the panel, which widens for them
+  (`body.wide-panel`) so the scene stays visible. Back / Next and one dot per question sit in the panel header
+  (`drawNav` in main.js); Back from a stop's first question travels to the previous stop's last question.
+- The trail is an earth ribbon laid on the ground mesh as drawn (`groundAt` in world.js, which matches the
+  mesh's own triangles), not on the smooth height function, so it never sinks in.
+- The Hiawatha Belt pattern is traced from a 1909 photograph and the Haudenosaunee flag drawn from it: a solid
+  diamond tree with a stem, inner squares taller than outer ones, the line into the tree lower than the rest.
+  Beads are twice as long as wide, so the belt is about 2:1.
 - Models: `models.js` loads `public/models/<id>.glb` if `manifest.json` lists it, otherwise builds the stand-in
   from `props.js`. The Hiawatha Belt is always procedural (38 × 173 = 6,574 beads, matching the reading).
 - Blender: `art/blender/*.py`, run headless with Blender 5.2 (`common.export()` writes the glb, the .blend

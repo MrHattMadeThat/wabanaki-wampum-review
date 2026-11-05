@@ -3,9 +3,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { STATIONS, BIG_IDEA } from './content.js';
 import { ANCHORS } from './layout.js';
-import { buildWorld, heightAt } from './world.js';
+import { buildWorld, heightAt, groundAt } from './world.js';
 import { loadManifest, makeModel } from './models.js';
-import { buildStation, buildBeadPath } from './stations.js';
+import { buildStation, buildTrail } from './stations.js';
 import { renderTask, clearTask } from './tasks.js';
 import '@fontsource-variable/fraunces';
 import '@fontsource/atkinson-hyperlegible/400.css';
@@ -68,7 +68,7 @@ await loadManifest();
 const ctx = { make: makeModel, heightAt };
 const stages = await Promise.all(STATIONS.map((s) => buildStation(s.id, ctx)));
 stages.forEach((s) => scene.add(s.group));
-buildBeadPath(scene, heightAt);
+buildTrail(scene, groundAt);
 
 const poses = STATIONS.map((s) => {
   const a = ANCHORS[s.id];
@@ -116,6 +116,9 @@ function drawString() {
 
 let current = 0, taskIndex = 0, controller = null;
 
+// Which question to open when arriving: null for the first unanswered one, 'last' when stepping back.
+let arriveAt = null;
+
 function openStation(i) {
   const s = STATIONS[i], stage = stages[i];
   $('place').textContent = s.place;
@@ -124,9 +127,11 @@ function openStation(i) {
   $('title').textContent = s.title;
   $('step').textContent = `Stop ${i + 1} of ${STATIONS.length}`;
   const got = beadsFor(s.id);
-  const first = s.tasks.findIndex((_, k) => !got[k]);
+  let first = s.tasks.findIndex((_, k) => !got[k]);
+  if (arriveAt === 'last') first = s.tasks.length - 1;
+  arriveAt = null;
   // replay what is already solved, so the stage looks the way the student left it
-  for (let k = 0; k < (first < 0 ? s.tasks.length : first); k++) stage.react({ type: 'task-done', index: k });
+  for (let k = 0; k < (first < 0 ? s.tasks.length : first); k++) if (got[k]) stage.react({ type: 'task-done', index: k });
   if (first < 0) showStationDone(i);
   else showTask(i, first);
   drawString();
@@ -189,6 +194,7 @@ function showTask(i, k) {
   const next = $('next');
   next.hidden = true;
   addItemTags(stage, s.tasks[k]);
+  drawNav(i, k);
   $('task').scrollTop = 0;
   controller = renderTask($('task'), s.tasks[k], {
     emit: (e) => { stage.react(e); tagsReact(e); },
@@ -200,6 +206,7 @@ function showTask(i, k) {
       drawString();
       stage.react({ type: 'task-done', index: k });
       controller = null;
+      drawNav(i, k);
       const last = k === s.tasks.length - 1;
       next.textContent = last ? (i === STATIONS.length - 1 ? 'Finish the path' : 'Carry on along the path →') : 'Next question →';
       next.onclick = () => (last ? leave(i) : showTask(i, k + 1));
@@ -230,7 +237,34 @@ function showStationDone(i) {
   next.textContent = i === STATIONS.length - 1 ? 'Finish the path' : 'Carry on along the path →';
   next.onclick = () => leave(i);
   controller = null;
+  drawNav(i, -1);
   void s;
+}
+
+// Back and Next in the panel's header, with a dot per question at this stop. k is -1 on the "finished" screen.
+// Back steps to the previous question, or to the last question of the previous stop. Next only moves past
+// a question that has been answered; the dots jump to any question here.
+function drawNav(i, k) {
+  const s = STATIONS[i], got = beadsFor(s.id), n = s.tasks.length;
+  const prev = $('prev'), fwd = $('fwd');
+  prev.disabled = k === 0 && i === 0;
+  prev.onclick = () => {
+    if (k === -1) showTask(i, n - 1);
+    else if (k > 0) showTask(i, k - 1);
+    else { arriveAt = 'last'; goTo(i - 1); }
+  };
+  const answered = k === -1 || !!got[k];
+  fwd.disabled = !answered || (k === -1 && i === STATIONS.length - 1);
+  fwd.onclick = () => (k >= 0 && k < n - 1 ? showTask(i, k + 1) : leave(i));
+  fwd.title = k >= 0 && k < n - 1 ? 'Next question' : 'Next stop';
+  $('qdots').replaceChildren(...s.tasks.map((_, j) => {
+    const d = document.createElement('button');
+    d.type = 'button';
+    d.className = `qdot ${got[j] || ''}${j === k ? ' here' : ''}`;
+    d.setAttribute('aria-label', `Question ${j + 1}${got[j] ? ', answered' : ''}`);
+    d.onclick = () => showTask(i, j);
+    return d;
+  }));
 }
 
 function leave(i) {

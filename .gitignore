@@ -3,3 +3,4 @@ dist/
 *.blend1
 tmp/
 __pycache__/
+art/previews/
