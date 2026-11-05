@@ -64,7 +64,7 @@ def render(suffix, eye, target, scale):
     bpy.ops.render.render(write_still=True)
 
 
-if model_id.startswith("canoe_"):
+if model_id in ("canoe_birch", "canoe_plastic"):
     render("", (3.4, -5.8, 4.3), (0, 0, 0.22), 5.8)
     if model_id == "canoe_birch":
         render("_underside", (1.8, -4.8, -3.3), (0, 0, 0.25), 5.8)
@@ -75,5 +75,30 @@ elif model_id == "tree_of_peace":
     render("", (29, 40, 26), (0, 0, 6.5), 45)
     render("_crown", (16, 23, 17), (0, 0, 11.1), 19.5)
     render("_eagle", (1.8, 2.8, 18.8), (0, 0.05, 17.85), 1.2)
+elif model_id == "bow_set":
+    render("", (1.1, -5.0, 2.7), (0, 0, 0.87), 2.6)
+    render("_arrowhead", (0.58, -1.0, 1.06), (0.41, 0, 0.84), 0.27)
+    # Extras are three.js Y-up offsets; convert them back to Blender Z-up.
+    for name in ("bow_wood", "bow_sinew", "bow_flint", "bow_gum"):
+        part = bpy.data.objects[name]
+        x, y, z = map(float, part["explode"].split(","))
+        part.location += Vector((x, -z, y))
+    render("_exploded", (0.5, -5.0, 2.3), (0, 0, 0.87), 2.6)
+elif model_id in ("tree_birch", "tree_spruce", "tree_cedar"):
+    height = 9.5 if model_id == "tree_cedar" else 13.3
+    render("", (18, -25, 14), (0, 0, height * 0.48), height * 1.55)
+elif model_id == "shore_rocks":
+    render("", (3.7, -7.5, 5.2), (0, 0, 0.6), 8.4)
+elif model_id == "driftwood":
+    render("", (2.2, -4.5, 3.0), (0, 0, 0.15), 4.3)
+elif model_id == "canoe_paddle":
+    render("", (0.4, -2.0, 3.0), (0, 0, 0.02), 1.9)
+elif model_id == "fish_rack":
+    render("", (2.7, -5.0, 2.6), (0, 0, 0.8), 3.7)
+elif model_id == "porpoise":
+    render("", (1.5, -4.0, 1.8), (0, 0, 0.28), 2.1)
+    render("_side", (0.0, -4.0, 0.4), (0, 0, 0.28), 2.1)
+elif model_id == "wigwam":
+    render("", (5, 7, 4.0), (0, 0, 1.45), 6.6)
 else:
     raise ValueError("No preview camera for " + model_id)

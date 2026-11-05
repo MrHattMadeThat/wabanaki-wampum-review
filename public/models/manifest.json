@@ -15,6 +15,36 @@
     },
     "tree_of_peace": {
       "file": "tree_of_peace.glb"
+    },
+    "bow_set": {
+      "file": "bow_set.glb"
+    },
+    "tree_birch": {
+      "file": "tree_birch.glb"
+    },
+    "tree_spruce": {
+      "file": "tree_spruce.glb"
+    },
+    "tree_cedar": {
+      "file": "tree_cedar.glb"
+    },
+    "shore_rocks": {
+      "file": "shore_rocks.glb"
+    },
+    "driftwood": {
+      "file": "driftwood.glb"
+    },
+    "canoe_paddle": {
+      "file": "canoe_paddle.glb"
+    },
+    "porpoise": {
+      "file": "porpoise.glb"
+    },
+    "fish_rack": {
+      "file": "fish_rack.glb"
+    },
+    "wigwam": {
+      "file": "wigwam.glb"
     }
   }
 }
