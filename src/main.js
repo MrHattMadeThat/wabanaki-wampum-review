@@ -1,12 +1,15 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { STATIONS, BIG_IDEA } from './content.js';
 import { ANCHORS } from './layout.js';
 import { buildWorld, heightAt } from './world.js';
 import { loadManifest, makeModel } from './models.js';
 import { buildStation, buildBeadPath } from './stations.js';
 import { renderTask, clearTask } from './tasks.js';
+import '@fontsource-variable/fraunces';
+import '@fontsource/atkinson-hyperlegible/400.css';
+import '@fontsource/atkinson-hyperlegible/700.css';
 import './style.css';
 
 const params = new URLSearchParams(location.search);
@@ -48,7 +51,7 @@ function resize() {
   const open = !document.body.classList.contains('collapsed') && !document.body.classList.contains('titled');
   const wide = innerWidth > 820;
   const beside = wide && open ? panel.offsetWidth + 24 : 0;
-  const below = !wide && open ? Math.round(h * 0.42) : 0; // phones: the panel is a bottom sheet
+  const below = !wide && open ? Math.round(h * 0.56) : 0; // phones: the panel is a bottom sheet
   renderer.setSize(w, h);
   labels.setSize(w, h);
   camera.aspect = (w + beside) / (h + below);
@@ -116,8 +119,9 @@ let current = 0, taskIndex = 0, controller = null;
 function openStation(i) {
   const s = STATIONS[i], stage = stages[i];
   $('place').textContent = s.place;
-  $('title').textContent = s.title;
   $('intro').textContent = s.intro;
+  $('caption').hidden = false;
+  $('title').textContent = s.title;
   $('step').textContent = `Stop ${i + 1} of ${STATIONS.length}`;
   const got = beadsFor(s.id);
   const first = s.tasks.findIndex((_, k) => !got[k]);
@@ -126,7 +130,55 @@ function openStation(i) {
   if (first < 0) showStationDone(i);
   else showTask(i, first);
   drawString();
-  $('panel').scrollTop = 0;
+  $('task').scrollTop = 0;
+}
+
+// ------------------------------------------------------------------ labels on the 3D parts a question asks about
+
+let itemTags = [];
+function clearItemTags() {
+  itemTags.forEach(({ tag }) => tag.removeFromParent());
+  itemTags = [];
+}
+// One label above each part a match question links to. Clicking it selects that part; dropping an answer
+// on it answers for that part; once answered it shows the answer.
+function addItemTags(stage, task) {
+  clearItemTags();
+  if (task.type !== 'match') return;
+  stage.group.updateMatrixWorld(true); // the stop may not have been drawn yet
+  const box = new THREE.Box3(), top = new THREE.Vector3();
+  task.items.forEach((item, k) => {
+    const obj = item.pick && stage.group.getObjectByName(item.pick);
+    if (!obj) return;
+    box.setFromObject(obj, true);
+    top.set((box.min.x + box.max.x) / 2, box.max.y, (box.min.z + box.max.z) / 2);
+    const d = document.createElement('button');
+    d.type = 'button';
+    d.className = 'tag item';
+    d.dataset.pick = item.pick;
+    d.innerHTML = '<b></b><span></span>';
+    d.firstChild.textContent = String(k + 1);
+    d.lastChild.textContent = item.label;
+    d.onclick = () => controller?.pick(item.pick);
+    const tag = new CSS2DObject(d);
+    tag.center.set(0.5, 1.15);
+    tag.position.copy(obj.worldToLocal(top.clone()));
+    obj.add(tag);
+    itemTags.push({ tag, pick: item.pick, el: d });
+  });
+}
+function tagsReact(e) {
+  if (e.type === 'select') itemTags.forEach((t) => t.el.classList.toggle('current', t.pick === e.pick));
+  if (e.type === 'item-correct') {
+    const t = itemTags.find((x) => x.pick === e.pick);
+    if (t) { t.el.classList.remove('current'); t.el.classList.add('done'); t.el.lastChild.textContent = e.answer; }
+  }
+}
+// The 3D part (or its label) under a screen point, for answers dragged onto the scene.
+function dropTarget(x, y) {
+  const tag = document.elementsFromPoint(x, y).find((e) => e.classList?.contains('item') && e.dataset.pick);
+  if (tag) return tag.dataset.pick;
+  return pickAt({ clientX: x, clientY: y });
 }
 
 function showTask(i, k) {
@@ -136,8 +188,11 @@ function showTask(i, k) {
   stage.react({ type: 'task-start', index: k });
   const next = $('next');
   next.hidden = true;
+  addItemTags(stage, s.tasks[k]);
+  $('task').scrollTop = 0;
   controller = renderTask($('task'), s.tasks[k], {
-    emit: (e) => stage.react(e),
+    emit: (e) => { stage.react(e); tagsReact(e); },
+    dropTarget,
     done: ({ firstTry }) => {
       const got = beadsFor(s.id);
       if (!got[k]) got[k] = firstTry ? 'purple' : 'white';
@@ -156,6 +211,7 @@ function showTask(i, k) {
 
 function showStationDone(i) {
   clearTask();
+  clearItemTags();
   const s = STATIONS[i];
   $('count').textContent = '';
   const box = $('task');
@@ -197,6 +253,8 @@ function showLabels(active) {
 function goTo(i, instant = false) {
   if (travel) return;
   clearTask();
+  clearItemTags();
+  $('caption').hidden = true;
   showLabels(-1);
   const from = { eye: camera.position.clone(), look: controls.target.clone(), p: current / (STATIONS.length - 1) };
   const to = poses[i];

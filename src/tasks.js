@@ -1,10 +1,15 @@
-// The challenge panel. One task at a time: render(task) draws it into `host`, and calls
-// hooks.emit(event) so the 3D stage can react, then hooks.done({ firstTry }) when it is solved.
+// The question panel. One task at a time: renderTask(host, task, hooks) draws it into `host` and returns a
+// controller with pick(name), which main.js calls when a 3D part or its scene label is clicked.
 //
-// Events sent to the stage:
-//   { type: 'select', pick }        an item or option linked to a 3D part is selected (pick may be null)
-//   { type: 'item-correct', pick }  a match item was answered correctly
-//   { type: 'option', pick }        a choice option linked to a 3D part was clicked
+// hooks.emit(event) tells the stage (and the scene labels) what happened:
+//   { type: 'select', pick }                    an item linked to a 3D part is selected (pick may be null)
+//   { type: 'item-correct', pick, item, answer } a match item was answered correctly
+//   { type: 'option', pick }                    a choice option linked to a 3D part was clicked
+// hooks.dropTarget(x, y) returns the 3D part name under a screen point, for answers dragged onto the scene.
+// hooks.done({ firstTry }) when the task is solved.
+//
+// Every task has the same two parts: .q-body (the question) and .q-foot (feedback and the explanation),
+// which sits at the bottom of the panel next to the Next button, so nothing pushes the answers out of view.
 
 import { MAP } from './map-data.js';
 
@@ -14,6 +19,11 @@ const el = (tag, cls, text) => {
   if (text != null) e.textContent = text;
   return e;
 };
+const button = (cls, text) => {
+  const b = el('button', cls, text);
+  b.type = 'button';
+  return b;
+};
 
 function shuffle(list) {
   const a = list.slice();
@@ -21,19 +31,61 @@ function shuffle(list) {
   return a;
 }
 
-function feedback(host) {
-  const box = el('div', 'feedback');
-  box.setAttribute('role', 'status');
-  host.append(box);
+// Feedback and explanation live in the foot.
+function footer(foot) {
+  const say = el('p', 'feedback');
+  say.setAttribute('role', 'status');
+  foot.append(say);
   return {
-    say(text, kind) { box.textContent = text; box.className = `feedback ${kind || ''}`; },
-    clear() { box.textContent = ''; box.className = 'feedback'; },
+    say(text, kind = '') { say.textContent = text; say.className = `feedback ${kind}`; },
+    clear() { say.textContent = ''; say.className = 'feedback'; },
+    // the win and the why in one box, so a solved question doesn't grow
+    solved(headline, text) {
+      say.textContent = ''; say.className = 'feedback';
+      const box = el('p', 'explain');
+      box.append(el('strong', null, headline + ' '), document.createTextNode(text || ''));
+      foot.append(box);
+    },
   };
 }
 
-function explain(host, text) {
-  if (!text) return;
-  host.append(el('p', 'explain', text));
+// Pointer dragging for answer chips. A press that doesn't move is a tap.
+// onMove(x, y) while dragging, onDrop(x, y) at the end, onTap() for a tap.
+function draggable(chip, label, { onMove, onDrop, onTap }) {
+  let start = null, ghost = null;
+  chip.style.touchAction = 'none';
+  chip.addEventListener('pointerdown', (e) => {
+    if (chip.disabled) return;
+    start = [e.clientX, e.clientY];
+    chip.setPointerCapture(e.pointerId);
+  });
+  chip.addEventListener('pointermove', (e) => {
+    if (!start) return;
+    if (!ghost && Math.hypot(e.clientX - start[0], e.clientY - start[1]) > 6) {
+      ghost = el('div', 'ghost', label);
+      document.body.append(ghost);
+      chip.classList.add('dragging');
+    }
+    if (ghost) {
+      ghost.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+      onMove?.(e.clientX, e.clientY);
+    }
+  });
+  const end = (e, cancelled) => {
+    if (!start) return;
+    start = null;
+    chip.classList.remove('dragging');
+    if (ghost) {
+      ghost.remove();
+      ghost = null;
+      if (!cancelled) onDrop(e.clientX, e.clientY);
+      else onMove?.(-1, -1);
+    } else if (!cancelled) onTap();
+  };
+  chip.addEventListener('pointerup', (e) => end(e, false));
+  chip.addEventListener('pointercancel', (e) => end(e, true));
+  // keyboard: Enter/Space is a tap
+  chip.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onTap(); } });
 }
 
 // Some tasks put things outside the panel (the map card). They register a cleanup here.
@@ -43,24 +95,25 @@ export function clearTask() {
   cleanup = null;
 }
 
-// Returns a controller with pick(name): the stage calls it when a 3D part is clicked.
 export function renderTask(host, task, hooks) {
   clearTask();
   host.replaceChildren();
-  host.append(el('p', 'prompt', task.prompt));
+  const body = el('div', 'q-body');
+  const foot = el('div', 'q-foot');
+  body.append(el('p', 'prompt', task.prompt));
+  host.append(body, foot);
   const kind = { choice, multi, order, match, answer3, mapdrop }[task.type];
-  return kind(host, task, hooks) || { pick() {} };
+  return kind(body, footer(foot), task, hooks) || { pick() {} };
 }
 
 // ------------------------------------------------------------------ choice
 
-function choice(host, task, hooks) {
+function choice(body, fb, task, hooks) {
   const list = el('div', 'options');
-  const fb = feedback(host);
   let wrong = 0, solved = false;
   const buttons = shuffle(task.options).map((o) => {
-    const b = el('button', 'option', o.text);
-    b.type = 'button';
+    const b = button('option', o.text);
+    b.dataset.pick = o.pick || '';
     b.onclick = () => {
       if (solved || b.disabled) return;
       if (o.pick) hooks.emit({ type: 'option', pick: o.pick });
@@ -68,8 +121,7 @@ function choice(host, task, hooks) {
         solved = true;
         b.classList.add('right');
         buttons.forEach((x) => (x.disabled = true));
-        fb.say('Yes.', 'good');
-        explain(host, task.explain);
+        fb.solved('Yes.', task.explain);
         hooks.done({ firstTry: wrong === 0 });
       } else {
         wrong++;
@@ -78,27 +130,22 @@ function choice(host, task, hooks) {
         fb.say(o.why || 'Not that one. Try again.', 'bad');
       }
     };
-    b.dataset.pick = o.pick || '';
     list.append(b);
     return b;
   });
-  host.insertBefore(list, host.querySelector('.feedback'));
-  return {
-    pick(name) { buttons.find((b) => b.dataset.pick === name)?.click(); },
-  };
+  body.append(list);
+  return { pick(name) { buttons.find((b) => b.dataset.pick === name)?.click(); } };
 }
 
 // ------------------------------------------------------------------ multi
 
-function multi(host, task, hooks) {
-  const list = el('div', 'options');
+function multi(body, fb, task, hooks) {
+  const list = el('div', `options${task.options.length > 6 ? ' two' : ''}`);
   const chosen = new Set();
   const want = task.options.filter((o) => o.correct).length;
-  const fb = feedback(host);
   let tries = 0, solved = false;
   const buttons = shuffle(task.options).map((o) => {
-    const b = el('button', 'option toggle', o.text);
-    b.type = 'button';
+    const b = button('option toggle', o.text);
     b.setAttribute('aria-pressed', 'false');
     b.onclick = () => {
       if (solved || b.disabled) return;
@@ -109,8 +156,7 @@ function multi(host, task, hooks) {
     list.append(b);
     return { b, o };
   });
-  const check = el('button', 'primary', 'Check');
-  check.type = 'button';
+  const check = button('primary small', 'Check');
   check.onclick = () => {
     if (solved) return;
     tries++;
@@ -120,8 +166,8 @@ function multi(host, task, hooks) {
       solved = true;
       buttons.forEach(({ b, o }) => { b.disabled = true; if (o.correct) b.classList.add('right'); });
       check.remove();
-      fb.say(`All ${want}.`, 'good');
-      explain(host, task.explain);
+      body.querySelector('.hint')?.remove();
+      fb.solved(`All ${want}.`, task.explain);
       hooks.done({ firstTry: tries === 1 });
       return;
     }
@@ -135,149 +181,200 @@ function multi(host, task, hooks) {
     if (good < want) lines.push(`You have ${good} of ${want}. Keep going.`);
     fb.say(lines.join(' '), 'bad');
   };
-  host.insertBefore(list, host.querySelector('.feedback'));
-  host.insertBefore(check, host.querySelector('.feedback'));
+  body.append(el('p', 'hint', `Pick ${want}, then check.`), list, check);
 }
 
 // ------------------------------------------------------------------ order
 
-function order(host, task, hooks) {
+// One list. Drag a card by its grip (or anywhere on it), or use its arrows, then check.
+function order(body, fb, task, hooks) {
   const n = task.items.length;
-  const slots = Array(n).fill(null); // item index in each slot
-  const locked = Array(n).fill(false);
-  const slotList = el('ol', 'slots');
-  const pool = el('div', 'pool');
-  const fb = feedback(host);
-  const check = el('button', 'primary', 'Check the order');
-  check.type = 'button';
-  let tries = 0, solved = false;
-  const poolOrder = shuffle(task.items.map((_, i) => i));
+  let seq = shuffle(task.items.map((_, i) => i));
+  while (seq.every((v, i) => v === i)) seq = shuffle(seq);
+  const list = el('ol', 'sortable');
+  const check = button('primary small', 'Check the order');
+  let tries = 0, solved = false, marks = false;
 
   function draw() {
-    slotList.replaceChildren(...slots.map((it, s) => {
-      const li = el('li', `slot${locked[s] ? ' right' : ''}${it == null ? ' empty' : ''}`);
-      const b = el('button', 'slot-btn', it == null ? 'Tap a card below' : task.items[it]);
-      b.type = 'button';
-      b.disabled = locked[s] || it == null;
-      b.onclick = () => { slots[s] = null; fb.clear(); draw(); };
-      li.append(b);
+    list.replaceChildren(...seq.map((it, pos) => {
+      const li = el('li', 'sort-card');
+      if (marks) li.classList.add(it === pos ? 'right' : 'off');
+      li.dataset.it = it;
+      li.append(el('span', 'grip', '⠇'), el('span', 'sort-text', task.items[it]));
+      if (!solved) {
+        const up = button('nudge', '↑'), down = button('nudge', '↓');
+        up.setAttribute('aria-label', 'Move up'); down.setAttribute('aria-label', 'Move down');
+        up.disabled = pos === 0; down.disabled = pos === n - 1;
+        up.onclick = () => move(pos, pos - 1);
+        down.onclick = () => move(pos, pos + 1);
+        const arrows = el('span', 'nudges');
+        arrows.append(up, down);
+        li.append(arrows);
+        dragSort(li);
+      }
       return li;
     }));
-    const placed = new Set(slots.filter((x) => x != null));
-    pool.replaceChildren(...poolOrder.filter((i) => !placed.has(i)).map((i) => {
-      const b = el('button', 'card', task.items[i]);
-      b.type = 'button';
-      b.onclick = () => {
-        const s = slots.indexOf(null);
-        if (s >= 0) { slots[s] = i; fb.clear(); draw(); }
+  }
+  function move(from, to) {
+    if (to < 0 || to >= n) return;
+    const [v] = seq.splice(from, 1);
+    seq.splice(to, 0, v);
+    marks = false;
+    fb.clear();
+    draw();
+    list.children[to]?.querySelector('.nudge')?.focus({ preventScroll: true });
+  }
+  // Drag: as the pointer passes over another card, the dragged card takes its place.
+  function dragSort(li) {
+    li.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('.nudge')) return;
+      li.setPointerCapture(e.pointerId);
+      li.classList.add('lifted');
+      const onMove = (ev) => {
+        const over = document.elementsFromPoint(ev.clientX, ev.clientY).find((x) => x.classList?.contains('sort-card') && x !== li);
+        if (!over) return;
+        const to = [...list.children].indexOf(over), from = [...list.children].indexOf(li);
+        const [v] = seq.splice(from, 1);
+        seq.splice(to, 0, v);
+        list.insertBefore(li, to > from ? over.nextSibling : over);
+        marks = false;
+        fb.clear();
       };
-      return b;
-    }));
-    check.disabled = slots.includes(null);
-    check.hidden = solved;
+      const onUp = () => {
+        li.classList.remove('lifted');
+        li.removeEventListener('pointermove', onMove);
+        li.removeEventListener('pointerup', onUp);
+        li.removeEventListener('pointercancel', onUp);
+        draw();
+      };
+      li.addEventListener('pointermove', onMove);
+      li.addEventListener('pointerup', onUp);
+      li.addEventListener('pointercancel', onUp);
+    });
   }
 
   check.onclick = () => {
     tries++;
-    let right = 0;
-    slots.forEach((it, s) => {
-      if (it === s) { locked[s] = true; right++; } else if (!locked[s]) slots[s] = null;
-    });
+    marks = true;
+    const right = seq.filter((it, pos) => it === pos).length;
     if (right === n) {
       solved = true;
-      fb.say('That’s the order.', 'good');
+      check.remove();
+      body.querySelector('.hint')?.remove();
       draw();
-      explain(host, task.explain);
+      fb.solved('That’s the order.', task.explain);
       hooks.done({ firstTry: tries === 1 });
       return;
     }
-    fb.say(`${right} of ${n} are in the right place. Those stay; try the rest again.`, 'bad');
+    fb.say(`${right} of ${n} are in the right place (green). Move the others and check again.`, 'bad');
     draw();
   };
 
-  host.append(slotList, pool, check);
-  host.append(host.querySelector('.feedback'));
+  body.append(el('p', 'hint', 'Drag the cards into order, or use the arrows. Top is first.'), list, check);
   draw();
 }
 
 // ------------------------------------------------------------------ match
 
-function match(host, task, hooks) {
+function match(body, fb, task, hooks) {
   const rows = el('div', 'match-rows');
   const palette = el('div', 'palette');
-  const fb = feedback(host);
   const done = new Set();
-  let current = null, wrong = 0;
   const rowEls = new Map();
+  const reusable = task.choices.length < task.items.length; // a sort into two or three piles
+  const linked = task.items.some((it) => it.pick);
+  // Long answers (definitions, descriptions) read better as a list, with the short items as pills above.
+  const wide = task.choices.reduce((n, c) => n + c.label.length, 0) / task.choices.length > 28;
+  if (wide) { rows.classList.add('pills'); palette.classList.add('defs'); }
+  let current = null, wrong = 0, solved = false;
 
   function select(item) {
     if (!item || done.has(item.id)) return;
     current = item;
     rowEls.forEach((r, id) => r.classList.toggle('current', id === item.id));
-    palette.dataset.for = item.label;
     hooks.emit({ type: 'select', pick: item.pick || null });
     fb.clear();
   }
+  const hoverRow = (id) => rowEls.forEach((r, rid) => r.classList.toggle('over', rid === id));
 
-  for (const item of task.items) {
-    const r = el('button', 'match-row');
-    r.type = 'button';
-    r.append(el('span', 'match-label', item.label), el('span', 'match-answer', '?'));
+  function answer(item, c, chip) {
+    if (!item || done.has(item.id)) return;
+    const r = rowEls.get(item.id);
+    if (c.id === item.answer) {
+      done.add(item.id);
+      r.classList.remove('current');
+      r.classList.add('right');
+      r.disabled = true;
+      r.querySelector('.match-answer').textContent = c.label;
+      hooks.emit({ type: 'item-correct', pick: item.pick || null, item: item.id, answer: c.label });
+      fb.clear();
+      if (!reusable) chip.disabled = true;
+      if (wide) { chip.classList.add('used'); chip.prepend(el('b', null, item.label)); }
+      if (done.size === task.items.length) {
+        solved = true;
+        current = null;
+        // the list now says it all: wide keeps the matched definitions, narrow keeps the answered rows
+        body.querySelector('.hint')?.remove();
+        if (wide) rows.remove();
+        else palette.remove();
+        fb.solved('All matched.', task.explain);
+        hooks.done({ firstTry: wrong === 0 });
+      } else if (item === current || !current || done.has(current.id)) {
+        select(task.items.find((it) => !done.has(it.id)));
+      }
+    } else {
+      wrong++;
+      select(item);
+      r.classList.remove('shake'); void r.offsetWidth; r.classList.add('shake');
+      fb.say(c.why || `Not “${c.label}” for ${item.label.toLowerCase()}. Try another.`, 'bad');
+    }
+  }
+
+  task.items.forEach((item, k) => {
+    const r = button('match-row');
+    r.dataset.item = item.id;
+    r.append(el('span', 'match-num', String(k + 1)), el('span', 'match-label', item.label), el('span', 'match-answer', '?'));
     r.onclick = () => select(item);
     rows.append(r);
     rowEls.set(item.id, r);
-  }
+  });
+
+  // Where a dragged chip lands: a row in the panel, or a part (or its label) in the scene.
+  const itemAt = (x, y) => {
+    const row = document.elementsFromPoint(x, y).find((e) => e.dataset?.item);
+    if (row) return task.items.find((it) => it.id === row.dataset.item);
+    const pick = linked ? hooks.dropTarget(x, y) : null;
+    return pick ? task.items.find((it) => it.pick === pick) : null;
+  };
 
   for (const c of shuffle(task.choices)) {
-    const b = el('button', 'chip', c.label);
-    b.type = 'button';
-    b.onclick = () => {
-      if (!current) { fb.say('Pick something on the left first.', ''); return; }
-      const r = rowEls.get(current.id);
-      if (c.id === current.answer) {
-        done.add(current.id);
-        r.classList.remove('current');
-        r.classList.add('right');
-        r.disabled = true;
-        r.querySelector('.match-answer').textContent = c.label;
-        hooks.emit({ type: 'item-correct', pick: current.pick || null, item: current.id, answer: c.label });
-        fb.clear();
-        // choices used once (when there are as many choices as items) can be retired
-        const reusable = task.choices.length < task.items.length;
-        if (!reusable) b.disabled = true;
-        if (done.size === task.items.length) {
-          current = null;
-          fb.say('All matched.', 'good');
-          explain(host, task.explain);
-          hooks.done({ firstTry: wrong === 0 });
-        } else {
-          select(task.items.find((it) => !done.has(it.id)));
-        }
-      } else {
-        wrong++;
-        r.classList.remove('shake'); void r.offsetWidth; r.classList.add('shake');
-        fb.say(c.why || `Not “${c.label}” for ${current.label.toLowerCase()}. Try another.`, 'bad');
-      }
-    };
-    palette.append(b);
+    const chip = button('chip', c.label);
+    draggable(chip, c.label, {
+      onMove: (x, y) => hoverRow(itemAt(x, y)?.id),
+      onDrop: (x, y) => { hoverRow(null); if (!solved) answer(itemAt(x, y), c, chip); },
+      onTap: () => {
+        if (solved || chip.disabled) return;
+        if (!current) { fb.say('Pick something on the list first.'); return; }
+        answer(current, c, chip);
+      },
+    });
+    palette.append(chip);
   }
 
-  host.append(rows, el('p', 'hint', 'Pick one on the left, then its answer below.'), palette);
-  host.append(host.querySelector('.feedback'));
+  const how = linked
+    ? 'Drag each answer onto its part, in the list or in the scene. Or pick a part, then tap its answer.'
+    : 'Drag each answer onto its row, or pick a row and then tap its answer.';
+  body.append(rows, el('p', 'hint', how), palette);
   select(task.items[0]);
-  return {
-    pick(name) { select(task.items.find((it) => it.pick === name)); },
-  };
+  return { pick(name) { select(task.items.find((it) => it.pick === name)); } };
 }
 
 // ------------------------------------------------------------------ answer3
 
-function answer3(host, task, hooks) {
+function answer3(body, fb, task, hooks) {
   const area = el('div', 'answer3');
   const built = el('div', 'built');
-  const fb = feedback(host);
-  host.append(area, built);
-  host.append(host.querySelector('.feedback'));
+  body.append(built, area);
   let wrong = 0;
 
   const line = (label, text) => {
@@ -290,8 +387,7 @@ function answer3(host, task, hooks) {
     area.replaceChildren(el('p', 'step', title));
     const list = el('div', 'options');
     for (const o of shuffle(options)) {
-      const b = el('button', 'option', o.text);
-      b.type = 'button';
+      const b = button('option', o.text);
       b.onclick = () => {
         if (o.ok) { fb.clear(); onRight(o); return; }
         wrong++;
@@ -320,8 +416,7 @@ function answer3(host, task, hooks) {
         ], () => {
           line('Why it matters:', c.why);
           area.replaceChildren();
-          fb.say('That’s a three-part answer. On the test, write it in your own words.', 'good');
-          explain(host, task.explain);
+          fb.solved('That’s a three-part answer. On the test, write it in your own words.', task.explain);
           hooks.done({ firstTry: wrong === 0 });
         });
       });
@@ -338,10 +433,9 @@ const svg = (tag, attrs = {}, text) => {
   return e;
 };
 
-// Drag each name onto its homeland on a map of the Maritimes. Tap a name and then the map works too.
-function mapdrop(host, task, hooks) {
-  const fb = feedback(host);
-  host.insertBefore(el('p', 'hint', 'Drag each name onto its homeland on the map. Or tap a name, then tap the map.'), host.querySelector('.feedback'));
+// Drag each name onto its homeland on a map of New Brunswick. Tap a name and then the map works too.
+function mapdrop(body, fb, task, hooks) {
+  body.append(el('p', 'hint', 'Drag each name onto its homeland on the map. Or tap a name, then tap the map.'));
   const project = ([lon, lat]) => [(lon - MAP.proj.w) * MAP.proj.kx, (MAP.proj.n - lat) * MAP.proj.ky];
 
   const card = el('div', 'mapcard');
@@ -377,10 +471,10 @@ function mapdrop(host, task, hooks) {
   card.append(map, tray);
   document.body.append(card);
   document.body.classList.add('mapping');
-  cleanup = () => { card.remove(); ghost?.remove(); document.body.classList.remove('mapping'); };
+  cleanup = () => { card.remove(); document.body.classList.remove('mapping'); };
 
   const placed = new Set();
-  let wrong = 0, selected = null, ghost = null, over = null;
+  let wrong = 0, selected = null, over = null;
 
   const regionAt = (x, y) => document.elementsFromPoint(x, y).find((e) => e.dataset?.region)?.dataset.region || null;
   const hover = (id) => {
@@ -403,8 +497,7 @@ function mapdrop(host, task, hooks) {
       selected = null;
       fb.say(`Yes: ${item.label}.`, 'good');
       if (placed.size === task.items.length) {
-        fb.say('All three homelands named.', 'good');
-        explain(host, task.explain);
+        fb.solved('All three homelands named.', task.explain);
         hooks.done({ firstTry: wrong === 0 });
       }
     } else {
@@ -415,47 +508,22 @@ function mapdrop(host, task, hooks) {
   }
 
   for (const item of shuffle(task.items)) {
-    const chip = el('button', 'chip map-chip', item.label);
-    chip.type = 'button';
-    let start = null;
-    chip.addEventListener('pointerdown', (e) => {
-      start = [e.clientX, e.clientY];
-      chip.setPointerCapture(e.pointerId);
-    });
-    chip.addEventListener('pointermove', (e) => {
-      if (!start) return;
-      if (!ghost && Math.hypot(e.clientX - start[0], e.clientY - start[1]) > 6) {
-        ghost = el('div', 'ghost', item.label);
-        document.body.append(ghost);
-        chip.classList.add('dragging');
-      }
-      if (ghost) {
-        ghost.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
-        hover(regionAt(e.clientX, e.clientY));
-      }
-    });
-    chip.addEventListener('pointerup', (e) => {
-      const dragged = !!ghost;
-      start = null;
-      chip.classList.remove('dragging');
-      if (dragged) {
-        ghost.remove(); ghost = null;
-        drop(item, regionAt(e.clientX, e.clientY), chip);
-      } else {
-        // tap to select, then tap the map
+    const chip = button('chip map-chip', item.label);
+    chip.dataset.id = item.id;
+    draggable(chip, item.label, {
+      onMove: (x, y) => hover(regionAt(x, y)),
+      onDrop: (x, y) => drop(item, regionAt(x, y), chip),
+      onTap: () => {
         tray.querySelectorAll('.map-chip').forEach((c) => c.classList.toggle('picked', c === chip && selected !== item));
         selected = selected === item ? null : item;
-        fb.say(selected ? `Now tap the homeland of the ${item.label}.` : '', '');
-      }
+        fb.say(selected ? `Now tap the homeland of the ${item.label}.` : '');
+      },
     });
-    chip.addEventListener('pointercancel', () => { start = null; ghost?.remove(); ghost = null; hover(null); });
-    chip.dataset.id = item.id;
     tray.append(chip);
   }
 
   map.addEventListener('click', (e) => {
     if (!selected) return;
-    const chip = tray.querySelector(`[data-id="${selected.id}"]`);
-    drop(selected, regionAt(e.clientX, e.clientY), chip);
+    drop(selected, regionAt(e.clientX, e.clientY), tray.querySelector(`[data-id="${selected.id}"]`));
   });
 }

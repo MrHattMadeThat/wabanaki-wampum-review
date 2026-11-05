@@ -26,6 +26,11 @@ framework, same stack as `../st-george-3d`. Started 2026-11-05. Read `README.md`
   `task-start` / `task-done`. Each stage's `react()` turns those into scene changes: the canoe reassembles,
   belt slots get nation labels, the messenger canoes leave, the story stones light.
 - On arrival, already-solved tasks are replayed as `task-done` so the stage looks the way it was left.
+- Screen layout: the stop's intro is a caption over the scene (bottom left); the panel holds only the question,
+  with feedback right under it and Next pinned at the bottom. **No question may scroll inside the panel** at
+  1366×650 (a 768px laptop with browser bars), before answering, after a wrong answer, or once solved. Re-check
+  that whenever content or styles change. Match questions with picks get numbered labels on the 3D parts
+  (`addItemTags` in main.js), and answers can be dragged onto those labels or the parts themselves.
 - Models: `models.js` loads `public/models/<id>.glb` if `manifest.json` lists it, otherwise builds the stand-in
   from `props.js`. The Hiawatha Belt is always procedural (38 × 173 = 6,574 beads, matching the reading).
 - Blender: `art/blender/*.py`, run headless with Blender 5.2 (`common.export()` writes the glb, the .blend

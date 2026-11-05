@@ -358,20 +358,12 @@ const BUILD = {
     const ends = [tag('east →', 'dir'), tag('← west', 'dir')];
     ends[0].position.set(1.28, 0.08, 0); ends[1].position.set(-1.28, 0.08, 0);
     belt.add(...ends);
-    const names = {};
     const light = highlighter(belt);
     return {
       ...s,
       picks: ['slot_1', 'slot_2', 'slot_3', 'slot_4', 'slot_5', 'belt_line'],
       react(e) {
         if (e.type === 'select' || e.type === 'option') light(e.pick);
-        if (e.type === 'item-correct' && e.pick && !names[e.pick]) {
-          const slot = belt.getObjectByName(e.pick);
-          const t = tag(e.answer, 'nation');
-          t.position.copy(slot.position).add(new THREE.Vector3(0, 0.27, 0));
-          belt.add(t);
-          names[e.pick] = t;
-        }
         if (e.type === 'task-done') light(null);
       },
     };

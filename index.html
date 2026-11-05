@@ -11,20 +11,27 @@
 
     <nav id="string" aria-label="Your bead string: one bead per question"></nav>
 
+    <!-- what this stop is about, over the scene -->
+    <section id="caption" class="caption" hidden>
+      <p class="caption-place" id="place"></p>
+      <p class="caption-text" id="intro"></p>
+    </section>
+
     <aside id="panel" aria-live="polite">
-      <button id="collapse" class="collapse" type="button" aria-expanded="true" aria-controls="panel-body" title="Hide or show the panel">&#8645;</button>
-      <div id="panel-body">
-        <p class="eyebrow"><span id="step"></span> &middot; <span id="place"></span></p>
+      <header class="panel-head">
+        <p class="eyebrow"><span id="step"></span><span id="count"></span></p>
         <h1 id="title"></h1>
-        <p id="intro" class="intro"></p>
-        <p id="count" class="count"></p>
-        <div id="task" class="task"></div>
+        <button id="collapse" class="collapse" type="button" aria-expanded="true" aria-controls="task" title="Hide or show the questions">&#8645;</button>
+      </header>
+      <div id="task" class="task"></div>
+      <footer class="panel-foot">
         <button id="next" class="primary next" type="button" hidden></button>
-      </div>
+      </footer>
     </aside>
 
     <section id="title-screen" class="overlay">
       <div class="card">
+        <div class="beadband" aria-hidden="true"></div>
         <p class="eyebrow">Wabanaki and Wampum &middot; unit review</p>
         <h1>The Open Path</h1>
         <p class="lede" id="big-idea"></p>
@@ -32,7 +39,7 @@
           Walk from the People of the Dawn, up the river by canoe, over the portage and west to the Tree of Peace.
           Every question you answer adds a bead to your string. Get it on the first try and the bead is purple, the rare colour.
         </p>
-        <p class="small">Drag to look around at each stop. Click things in the scene when a question asks about them.</p>
+        <p class="small">Drag to look around at each stop. You can drag answers right onto things in the scene.</p>
         <div class="row">
           <button id="start" class="primary" type="button">Start at dawn</button>
           <button id="restart" class="secondary" type="button" hidden>Start over</button>
@@ -42,6 +49,7 @@
 
     <section id="finish" class="overlay" hidden>
       <div class="card">
+        <div class="beadband" aria-hidden="true"></div>
         <p class="eyebrow">The end of the path, for now</p>
         <h1>Your bead string</h1>
         <p class="lede" id="finish-count"></p>
