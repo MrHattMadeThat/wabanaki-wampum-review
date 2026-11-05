@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>The Open Path</title>
+    <meta name="description" content="A 3D walk-through review for the Wabanaki and Wampum unit: from the People of the Dawn to the Tree of Peace." />
+  </head>
+  <body class="titled loading">
+    <div id="stage"></div>
+
+    <nav id="string" aria-label="Your bead string: one bead per question"></nav>
+
+    <aside id="panel" aria-live="polite">
+      <button id="collapse" class="collapse" type="button" aria-expanded="true" aria-controls="panel-body" title="Hide or show the panel">&#8645;</button>
+      <div id="panel-body">
+        <p class="eyebrow"><span id="step"></span> &middot; <span id="place"></span></p>
+        <h1 id="title"></h1>
+        <p id="intro" class="intro"></p>
+        <p id="count" class="count"></p>
+        <div id="task" class="task"></div>
+        <button id="next" class="primary next" type="button" hidden></button>
+      </div>
+    </aside>
+
+    <section id="title-screen" class="overlay">
+      <div class="card">
+        <p class="eyebrow">Wabanaki and Wampum &middot; unit review</p>
+        <h1>The Open Path</h1>
+        <p class="lede" id="big-idea"></p>
+        <p>
+          Walk from the People of the Dawn, up the river by canoe, over the portage and west to the Tree of Peace.
+          Every question you answer adds a bead to your string. Get it on the first try and the bead is purple, the rare colour.
+        </p>
+        <p class="small">Drag to look around at each stop. Click things in the scene when a question asks about them.</p>
+        <div class="row">
+          <button id="start" class="primary" type="button">Start at dawn</button>
+          <button id="restart" class="secondary" type="button" hidden>Start over</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="finish" class="overlay" hidden>
+      <div class="card">
+        <p class="eyebrow">The end of the path, for now</p>
+        <h1>Your bead string</h1>
+        <p class="lede" id="finish-count"></p>
+        <p>Like the white line on the Hiawatha Belt, the path is left open. The big question was:</p>
+        <p class="quote" id="finish-idea"></p>
+        <p id="finish-none">Every stop is strung. You are ready.</p>
+        <ul id="finish-review" class="review"></ul>
+        <div class="row">
+          <button id="again" class="secondary" type="button">Walk it again</button>
+        </div>
+      </div>
+    </section>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

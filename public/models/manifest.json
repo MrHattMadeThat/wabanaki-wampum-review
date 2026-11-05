@@ -1,0 +1,8 @@
+{
+  "_readme": "List a model here once its .glb is in this folder. Ids and part names: docs/MODEL_BRIEF.md. Remove an entry to fall back to the procedural stand-in.",
+  "models": {
+    "shell_whelk": {
+      "file": "shell_whelk.glb"
+    }
+  }
+}

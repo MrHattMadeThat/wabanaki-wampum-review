@@ -1,0 +1,19 @@
+{
+  "name": "wabanaki-wampum-review",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "A 3D walk-through review for the Grade 7 Wabanaki and Wampum unit.",
+  "scripts": {
+    "dev": "vite --port 5641 --strictPort",
+    "build": "vite build",
+    "preview": "vite preview --port 5642 --strictPort",
+    "check": "node scripts/check-content.mjs"
+  },
+  "dependencies": {
+    "three": "^0.185.1"
+  },
+  "devDependencies": {
+    "vite": "^8.3.6"
+  }
+}
