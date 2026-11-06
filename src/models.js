@@ -28,6 +28,9 @@ const BUILDERS = {
   canoe_paddle: () => P.buildPaddle(),
   porpoise: () => P.buildPorpoise(),
   gull: () => P.buildGull(),
+  lake_rock: () => P.buildLakeRock(),
+  shell_strings: () => P.buildShellStrings(),
+  loon: () => P.buildLoon(),
 };
 
 let manifest = {};

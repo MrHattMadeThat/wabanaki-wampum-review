@@ -9,7 +9,8 @@ framework, same stack as `../st-george-3d`. Started 2026-11-05. Read `README.md`
 - **Content source:** `C:\Users\fraye\Downloads\Wabanaki_and_Wampum_Unit_Review.docx`. Every fact in
   `src/content.js` must trace to it or to the teacher (marked in a comment, like the bow materials). Don't add
   facts from memory.
-- **Teach what was taught.** On 2026-11-05 the teacher cut the sequencing questions (choosing a chief, the
+- **Teach what was taught.** On 2026-11-06 the teacher also cut the Haudenosaunee nations' places (Eastern
+  Door and so on) and the eagle question. On 2026-11-05 the teacher cut the sequencing questions (choosing a chief, the
   Hiawatha story: too hard to follow) and the belt's square-by-square nations (outside the curriculum). Don't
   bring them back.
 - **Reword, don't copy** the quiz. Students should learn the idea, not memorise the wording.
@@ -28,7 +29,7 @@ framework, same stack as `../st-george-3d`. Started 2026-11-05. Read `README.md`
   `scripts/check-content.mjs` keeps a copy of the pick lists, so update both.
 - `tasks.js` renders one task and emits events (`select`, `item-correct`, `option`); `main.js` adds
   `task-start` / `task-done`. Each stage's `react()` turns those into scene changes: the canoe reassembles,
-  belt slots get nation labels, the messenger canoes leave, the story stones light.
+  the belt shapes light for their questions, the messenger canoes leave, the mist on Hiawatha's lake thins.
 - On arrival, already-solved tasks are replayed as `task-done` so the stage looks the way it was left.
 - Screen layout: the stop's intro is a caption over the scene (bottom left); the panel holds only the question,
   with feedback right under it and Next pinned at the bottom. **No question may scroll inside the panel** at
@@ -39,8 +40,9 @@ framework, same stack as `../st-george-3d`. Started 2026-11-05. Read `README.md`
   which widens for them (`body.wide-panel`) so the scene stays visible. A task's optional `lead` is a short
   setup paragraph above the prompt (the 1142 / 1451 question uses it).
 - The canoe and the bow share `assembly()` in stations.js: the parts fly apart for the stop's first question
-  and return as each is answered. The story stones light in three steps as the story questions are answered
-  (`stones` in content.js names them). Back / Next and one dot per question sit in the panel header
+  and return as each is answered. The story stop (2026-11-06) is the lake where Hiawatha strung his shells:
+  shell strings on a hide on a flat rock, reeds, a loon, and mist that thins with each of its three answers
+  (the eight story stones went with the ordering question). Back / Next and one dot per question sit in the panel header
   (`drawNav` in main.js); Back from a stop's first question travels to the previous stop's last question.
 - The opening (2026-11-05): the title waits over the bay before sunrise (`PREDAWN` sky key, stars). Start
   runs `stepIntro` in main.js: the sun comes up while `DAWN_LINES` (content.js) fade in and out, then the camera

@@ -1,8 +1,7 @@
 import * as THREE from 'three';
 import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
-import { buildStone, buildBeadString } from './props.js';
+import { buildBeadString } from './props.js';
 import { ANCHORS } from './layout.js';
-import { STATIONS } from './content.js';
 
 // The 3D stage at each stop. build(id, ctx) returns:
 //   group        placed at the anchor, on the ground (or the water)
@@ -356,46 +355,84 @@ const BUILD = {
     return s;
   },
 
+  // The lake where Hiawatha strung his shells: a flat rock at the water's edge with strings of shell beads on it,
+  // loose shells and reeds along the shore, a loon out on the water. Mist hangs on the lake and thins as the
+  // three questions are answered, the way the story's comfort cleared his eyes so he could see. No people.
   async story(ctx) {
     const s = base(ctx, 'story');
-    const a = ANCHORS.story;
-    const f = new THREE.Vector3(-a.cam[0], 0, -a.cam[2]).normalize();
-    const right = new THREE.Vector3(-f.z, 0, f.x);
-    const names = STATIONS.find((x) => x.id === 'story').stones;
-    const stones = names.map((name, k) => {
-      const st = buildStone(k);
-      const o = k - (names.length - 1) / 2;
-      st.position.copy(right.clone().multiplyScalar(o * 1.25)).addScaledVector(f, Math.abs(o) ** 2 * -0.12 + 0.8);
-      st.lookAt(st.position.clone().sub(f));
-      const n = tag(String(k + 1), 'num stone');
-      n.position.set(0, k % 2 ? 1.95 : 1.45, 0); // staggered so neighbouring names don't overlap
-      st.add(n);
-      s.group.add(st);
-      return { st, n, name };
+    const a = ANCHORS.story, gy = s.group.position.y;
+    const groundY = (x, z) => ctx.heightAt(a.at[0] + x, a.at[1] + z) - gy;
+    const rock = await ctx.make('lake_rock');
+    rock.position.set(0, groundY(0, 1.6) - 0.15, 1.6);
+    rock.rotation.y = 0.5;
+    s.group.add(rock);
+    const strings = await ctx.make('shell_strings');
+    strings.position.set(0, (rock.userData.top ?? 0.62), 0);
+    rock.add(strings);
+    const t1 = tag('Shell strings'); t1.position.set(0, 1.5, 0); rock.add(t1); // high enough not to hide them
+
+    // reeds and loose shells along the waterline (where the ground meets the lake)
+    let seed = 5;
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const shore = [];
+    for (let i = 0; i < 600 && shore.length < 36; i++) {
+      const x = (rnd() * 2 - 1) * 16, z = -2 + rnd() * 9;
+      if (Math.abs(x) < 2.4 || (x > 1 && z > 2.5)) continue; // keep clear of the rock and the camera's view of it
+      const h = ctx.heightAt(a.at[0] + x, a.at[1] + z);
+      if (h > -0.25 && h < 0.35) shore.push([x, h - gy, z]);
+    }
+    const reedGeo = new THREE.CylinderGeometry(0.01, 0.016, 1.0, 4).translate(0, 0.5, 0);
+    const headGeo = new THREE.CylinderGeometry(0.028, 0.028, 0.16, 6).translate(0, 0.88, 0);
+    const reeds = new THREE.InstancedMesh(reedGeo, new THREE.MeshStandardMaterial({ color: '#7b8a4a', roughness: 0.9 }), shore.length * 3);
+    const heads = new THREE.InstancedMesh(headGeo, new THREE.MeshStandardMaterial({ color: '#5a3d26', roughness: 0.9 }), shore.length * 3);
+    const shellGeo = new THREE.SphereGeometry(0.05, 7, 4, 0, Math.PI * 2, 0, Math.PI / 2).scale(1.3, 0.35, 1);
+    const shells = new THREE.InstancedMesh(shellGeo, new THREE.MeshStandardMaterial({ color: '#e9e3d6', roughness: 0.5 }), shore.length);
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3();
+    let n = 0;
+    shore.forEach(([x, y, z], i) => {
+      for (let k = 0; k < 3; k++) {
+        q.setFromEuler(e.set((rnd() - 0.5) * 0.25, rnd() * 6, (rnd() - 0.5) * 0.25));
+        m.compose(v.set(x + (rnd() - 0.5) * 0.5, y, z + (rnd() - 0.5) * 0.5), q, sc.setScalar(0.6 + rnd() * 0.5));
+        reeds.setMatrixAt(n, m); heads.setMatrixAt(n, m); n++;
+      }
+      m.compose(v.set(x + (rnd() - 0.5) * 1.6, y + 0.01, z - 0.6 - rnd()), q.setFromEuler(e.set(0, rnd() * 6, 0)), sc.setScalar(1));
+      shells.setMatrixAt(i, m);
     });
-    // how many stones each question lights: the war, the Peacemaker and Hiawatha's grief; then the strings
-    // and the condolence; then the rest of the story, which the next stops tell
-    const UPTO = [3, 5, names.length];
-    let want = 0, shown = 0, timer = 0;
-    const set = (k, on) => {
-      const { st, n, name } = stones[k];
-      st.material.emissiveIntensity = on ? 0.45 : 0;
-      n.element.textContent = on ? `${k + 1} · ${name}` : String(k + 1);
-      n.element.classList.toggle('lit', on);
-    };
+    reeds.castShadow = heads.castShadow = true;
+    shells.receiveShadow = true;
+    s.group.add(reeds, heads, shells);
+
+    // mist on the lake
+    const mist = [];
+    for (let i = 0; i < 16; i++) {
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: puffTexture(), color: '#e8e4ec', transparent: true, depthWrite: false, opacity: 0 }));
+      sp.position.set(-24 + rnd() * 26, -gy + 0.4 + rnd() * 1.2, 3 + rnd() * 12);
+      sp.scale.set(9 + rnd() * 7, 2.2 + rnd() * 1.4, 1);
+      sp.userData.drift = 0.15 + rnd() * 0.2;
+      s.group.add(sp);
+      mist.push(sp);
+    }
+    const loon = await ctx.make('loon');
+    s.group.add(loon);
+
+    const LEVEL = [1, 0.62, 0.3, 0.06]; // mist before any answer, then after each of the three
+    let want = LEVEL[0], level = LEVEL[0];
     return {
       ...s,
-      update(dt) {
-        if (shown >= want) return;
-        timer += dt;
-        if (timer > 0.35) { timer = 0; set(shown++, true); }
-      },
-      react(e) {
-        if (e.type === 'task-start') {
-          want = e.index ? UPTO[e.index - 1] : 0;
-          while (shown > want) set(--shown, false);
+      update(dt, t) {
+        level += (want - level) * Math.min(1, dt * 0.8);
+        for (const sp of mist) {
+          sp.position.x += sp.userData.drift * dt;
+          if (sp.position.x > 2) sp.position.x = -24;
+          sp.material.opacity = 0.42 * level;
         }
-        if (e.type === 'task-done') { want = Math.max(want, UPTO[e.index] ?? names.length); timer = 0.35; }
+        const ang = t * 0.05; // a slow loop out on the water, in view to the left of the rock
+        loon.position.set(-4 + Math.cos(ang) * 2.5, -gy, 7 + Math.sin(ang) * 1.6);
+        loon.rotation.y = Math.atan2(-Math.cos(ang) * 1.6, -Math.sin(ang) * 2.5);
+      },
+      react(ev) {
+        if (ev.type === 'task-start') want = LEVEL[ev.index];
+        if (ev.type === 'task-done') want = Math.min(want, LEVEL[ev.index + 1]);
       },
     };
   },
@@ -578,7 +615,8 @@ function dirt() {
 
 export function buildTrail(scene, groundAt) {
   const ids = ['portage', 'crossing', 'story', 'fire', 'shells', 'belt', 'council', 'tree'];
-  const pts = ids.map((id) => new THREE.Vector3(ANCHORS[id].at[0], 0, ANCHORS[id].at[1] + 6));
+  // the path passes in front of each stop; at the lake it passes behind, on dry ground
+  const pts = ids.map((id) => new THREE.Vector3(ANCHORS[id].at[0], 0, ANCHORS[id].at[1] + (id === 'story' ? -13 : 6)));
   pts.push(new THREE.Vector3(-300, 0, 4), new THREE.Vector3(-345, 0, 0));
   const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
   const len = curve.getLength();

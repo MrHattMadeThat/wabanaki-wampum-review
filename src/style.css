@@ -233,7 +233,7 @@ body.wide-panel #string { right: calc(min(760px, 100vw - 440px) + 28px); }
 .primary { background: var(--purple); color: var(--shell); box-shadow: 0 2px 0 #2b1631; }
 .primary:hover:not(:disabled) { background: var(--purple-2); }
 .primary:disabled { opacity: .4; cursor: default; }
-.primary.small { padding: 8px 18px; margin-top: 4px; }
+.primary.small { padding: 8px 18px; margin-top: 4px; color: var(--shell); } /* .small alone is grey caption text */
 .secondary { background: var(--bark-2); color: var(--ink); }
 .secondary:hover { background: var(--bark-3); }
 .next { width: 100%; font-size: 16.5px; padding: 13px 20px; }

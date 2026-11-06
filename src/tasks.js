@@ -152,12 +152,16 @@ function multi(body, fb, task, hooks) {
       if (solved || b.disabled) return;
       chosen.has(o) ? chosen.delete(o) : chosen.add(o);
       b.setAttribute('aria-pressed', String(chosen.has(o)));
+      ready();
       fb.clear();
     };
     list.append(b);
     return { b, o };
   });
   const check = button('primary small', 'Check');
+  // Check wakes up once as many answers are picked as the question asks for
+  const ready = () => { check.disabled = chosen.size !== want; };
+  ready();
   check.onclick = () => {
     if (solved) return;
     tries++;
@@ -181,6 +185,7 @@ function multi(body, fb, task, hooks) {
     if (bad.length) lines.push(bad.map((o) => o.why || `“${o.text}” doesn’t belong.`).join(' '));
     if (good < want) lines.push(`You have ${good} of ${want}. Keep going.`);
     fb.say(lines.join(' '), 'bad');
+    ready();
   };
   body.append(el('p', 'hint', `Pick ${want}, then check.`), list, check);
 }

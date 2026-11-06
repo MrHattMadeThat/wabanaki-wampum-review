@@ -330,12 +330,10 @@ export const STATIONS = [
   {
     id: 'story',
     title: 'The story of the Great Peace',
-    place: 'Haudenosaunee country',
+    place: 'A lake in Haudenosaunee country',
     intro:
       'This Haudenosaunee story is told in many versions. Five nations were trapped in a cycle of war. A messenger, the Peacemaker, ' +
-      'brought a law of peace, but he could not do it alone. Each stone lights up as the story goes on.',
-    // one short name per story stone, in order (src/stations.js lights them as the questions are answered)
-    stones: ['War', 'The Peacemaker', 'Grief', 'The strings', 'Condolence', 'The message', 'Tadodaho', 'Tree of Peace'],
+      'brought a law of peace, but he could not do it alone. By a lake like this one, Hiawatha, an Onondaga leader, gathered shells and strung them.',
     tasks: [
       {
         type: 'choice',
@@ -410,21 +408,17 @@ export const STATIONS = [
         explain: 'Giving him the council fire turned the strongest enemy of the peace into its keeper.',
       },
       {
-        type: 'match',
-        prompt: 'Each nation had a place in the confederacy. Match them.',
-        items: [
-          { id: 'mohawk', label: 'Mohawk', answer: 'east' },
-          { id: 'onondaga', label: 'Onondaga', answer: 'fire' },
-          { id: 'seneca', label: 'Seneca', answer: 'west' },
-          { id: 'tuscarora', label: 'Tuscarora', answer: 'sixth' },
+        type: 'choice',
+        prompt: 'Before the peace, people were afraid to hunt, travel or even sleep. What did the peace give them back?',
+        options: [
+          { text: 'The safety to hunt, travel and live without fear of revenge', correct: true },
+          { text: 'One ruler for all five nations', why: 'Each nation still ran its own affairs. That is what a confederacy is.' },
+          { text: 'Land won from their enemies', why: 'The peace ended the fighting. Nobody won a war.' },
+          { text: 'Guns and trade goods', why: 'Nothing in the story is about trade. Think about what the war took away.' },
         ],
-        choices: [
-          { id: 'east', label: 'Keepers of the Eastern Door' },
-          { id: 'fire', label: 'Keepers of the Fire, at the centre' },
-          { id: 'west', label: 'Keepers of the Western Door' },
-          { id: 'sixth', label: 'Joined in the early 1700s, making Five Nations into Six' },
-        ],
-        explain: 'Like a longhouse: a door at each end and the fire in the middle.',
+        explain:
+          'Ending the cycle of revenge gave people back control over their daily lives. ' +
+          'That is the big idea of this unit: empowerment.',
       },
     ],
   },
@@ -573,19 +567,21 @@ export const STATIONS = [
     title: 'The Tree of Peace',
     place: 'The end of the path, for now',
     intro:
-      'The five nations buried their weapons under a great white pine. Its roots spread out so other nations could follow them to shelter. ' +
-      'An eagle on top watches for danger. The laws they agreed to became the Great Law of Peace.',
+      'At the end of the path stands a great white pine, the Tree of Peace. Its roots spread out so other nations could follow them to shelter. ' +
+      'An eagle on top watches for danger. The laws the five nations agreed to became the Great Law of Peace.',
     tasks: [
       {
         type: 'choice',
-        prompt: 'What does the eagle at the top of the tree do?',
+        prompt: 'What did the five nations bury under the Tree of Peace, and why?',
         options: [
-          { text: 'Watches for danger', correct: true },
-          { text: 'Carries messages to other nations', why: 'In this unit, messengers travelled by canoe. The eagle watches.' },
-          { text: 'Guards the buried weapons', why: 'Close, but the reading says it watches for danger.' },
-          { text: 'Stands for the Onondaga', why: 'On the belt, the tree stands for the Onondaga. The eagle watches for danger.' },
+          { text: 'Their weapons, to show the fighting was over for good', correct: true },
+          { text: 'Their wampum, to keep it safe', why: 'Wampum was kept so it could be held and read aloud, not buried.' },
+          { text: 'The council fire, to hide it', why: 'The Onondaga kept the council fire burning at the centre of the confederacy.' },
+          { text: 'Gifts for the Peacemaker', why: 'The story says weapons. Burying them showed the war was finished.' },
         ],
-        explain: 'Weapons buried below, roots reaching out, an eagle watching above.',
+        explain:
+          'With the weapons buried, the roots spread out so other nations could follow them to shelter. ' +
+          'The laws the five nations agreed to became the Great Law of Peace.',
       },
       {
         type: 'choice',

@@ -774,6 +774,76 @@ export function buildBench() {
   return shadowed(root);
 }
 
+// ------------------------------------------------------------------ the lake (stand-ins for docs/MODEL_BRIEF.md priority 5)
+
+// A big flat granite rock at the water's edge, top at userData.top. Fresh water: no seaweed.
+export function buildLakeRock() {
+  const root = new THREE.Group();
+  root.name = 'lake_rock';
+  const g = new THREE.IcosahedronGeometry(0.5, 2);
+  const pos = g.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    const n = 1 + Math.sin(x * 8.3) * 0.04 + Math.sin(z * 9.1 + 1) * 0.04;
+    pos.setXYZ(i, x * 2.6 * n, Math.min(y, 0.3) * 1.4 + 0.42, z * 1.7 * n); // a flattened, table-like top
+  }
+  g.computeVertexNormals();
+  root.add(new THREE.Mesh(g, mat('#8f8b84', { flatShading: true, roughness: 0.95 })));
+  root.userData.top = 0.84;
+  return shadowed(root);
+}
+
+// Three strings of white shell beads lying on the rock, about twice life size so they read from the camera.
+export function buildShellStrings() {
+  const root = new THREE.Group();
+  root.name = 'shell_strings';
+  // laid on a dark hide, so the white shells show against the grey rock
+  const hide = new THREE.Mesh(new THREE.CircleGeometry(0.62, 9).scale(1.35, 1, 0.85).rotateX(-Math.PI / 2), mat('#5a3e2b', { roughness: 1 }));
+  hide.position.y = 0.006;
+  hide.receiveShadow = true;
+  root.add(hide);
+  const bead = new THREE.CylinderGeometry(0.016, 0.016, 0.04, 7).rotateZ(Math.PI / 2);
+  const cord = mat('#8a6a48');
+  [[-0.2, 0.25, 26], [0.05, -0.1, 30], [0.25, 0.4, 22]].forEach(([z, turn, count], k) => {
+    const pts = [];
+    for (let i = 0; i <= 8; i++) {
+      const u = i / 8;
+      pts.push(new THREE.Vector3((u - 0.5) * count * 0.042, 0.017, z + Math.sin(u * Math.PI * 1.3 + k) * 0.08 + u * turn * 0.2));
+    }
+    const curve = new THREE.CatmullRomCurve3(pts);
+    root.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 40, 0.004, 4), cord));
+    const beads = new THREE.InstancedMesh(bead, new THREE.MeshStandardMaterial({ roughness: 0.35 }), count);
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), c = new THREE.Color();
+    for (let i = 0; i < count; i++) {
+      const u = (i + 0.5) / count, p = curve.getPointAt(u), t = curve.getTangentAt(u);
+      q.setFromUnitVectors(new THREE.Vector3(1, 0, 0), t);
+      beads.setMatrixAt(i, m.compose(p, q, new THREE.Vector3(1, 1, 1)));
+      beads.setColorAt(i, c.set('#efe9dc').offsetHSL(0, 0, (Math.sin(i * 7.7 + k) - 0.5) * 0.04));
+    }
+    beads.castShadow = true;
+    root.add(beads);
+  });
+  return root;
+}
+
+// A common loon, floating: dark head and back, white chest. Nose along +x. The site moves it.
+export function buildLoon() {
+  const root = new THREE.Group();
+  root.name = 'loon';
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 8).scale(0.8, 0.28, 0.32), mat('#22262a', { roughness: 0.5 }));
+  body.position.y = 0.05;
+  const chest = new THREE.Mesh(new THREE.SphereGeometry(0.5, 10, 6).scale(0.35, 0.18, 0.26), mat('#e9e8e2'));
+  chest.position.set(0.22, 0.06, 0);
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 0.26, 7), mat('#1c2124'));
+  neck.position.set(0.3, 0.2, 0); neck.rotation.z = -0.3;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6).scale(1.3, 1, 0.9), mat('#1c2124'));
+  head.position.set(0.37, 0.33, 0);
+  const beak = new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.13, 5).rotateZ(-Math.PI / 2), mat('#2b2b2b'));
+  beak.position.set(0.5, 0.32, 0);
+  root.add(body, chest, neck, head, beak);
+  return shadowed(root);
+}
+
 export function buildBeadString(n = 40, spacing = 0.03) {
   const g = new THREE.CylinderGeometry(0.009, 0.009, 0.026, 6).rotateZ(Math.PI / 2);
   const m = new THREE.InstancedMesh(g, new THREE.MeshStandardMaterial({ roughness: 0.4 }), n);

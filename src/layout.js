@@ -14,7 +14,8 @@ export const ANCHORS = {
   messengers: { at: [100, -7], water: true, cam: [7, 5.5, 13], look: [0.5, 0.6, 0] },
   portage: { at: [46, 16], cam: [7, 4.5, 8], look: [0, 1.4, 0] },
   crossing: { at: [0, 4], cam: [9, 6, 10], look: [-20, 0, -6] },
-  story: { at: [-58, 22], cam: [6.6, 4.4, 8.4], look: [0, 0.9, 0] },
+  // the lakeshore where Hiawatha strung his shells; the camera is out over the water looking back at the shore
+  story: { at: [-66, 41], flat: false, cam: [8.6, 2.3, 3.4], look: [-2.6, -0.1, 1.8] },
   fire: { at: [-108, -6], cam: [7, 5, 9], look: [0, 1, 0] },
   shells: { at: [-150, 14], cam: [1.5, 1.6, 2.1], look: [0.1, 0.62, 0] },
   belt: { at: [-190, -4], cam: [0, 2.15, 2.6], look: [0, 1.2, 0] },
