@@ -225,8 +225,7 @@ low down.
 The story stop is now a lakeshore in Haudenosaunee country, where Hiawatha gathered shells and strung them.
 Stand-ins are in `src/props.js`. **No people and no ceremony**: the strings simply lie on a hide on a rock.
 - `lake_rock`: a big, flat-topped granite rock at the water's edge, about 2.6 × 1.7 m, grey, lichen at most,
-  no seaweed (fresh water). Put an empty `top` custom property (a number, metres) at the height of its flat top;
-  the site lays the strings there (stand-in: 0.84).
+  no seaweed (fresh water). Keep the top flat and level: the site lays the strings at the rock's highest point.
 - `shell_strings`: three strings of white shell beads, about twice life size (beads about 3 cm across, strings
   about 1 m), lying loosely curved on a dark brown deer hide about 1.6 × 1 m. Origin at the hide's centre.
 - `loon`: a common loon floating, dark head and back, white chest, dagger beak, nose along +X, origin at the

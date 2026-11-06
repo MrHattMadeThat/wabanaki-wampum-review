@@ -363,11 +363,12 @@ const BUILD = {
     const a = ANCHORS.story, gy = s.group.position.y;
     const groundY = (x, z) => ctx.heightAt(a.at[0] + x, a.at[1] + z) - gy;
     const rock = await ctx.make('lake_rock');
+    const top = new THREE.Box3().setFromObject(rock).max.y; // the strings lie on its top, whichever model it is
     rock.position.set(0, groundY(0, 1.6) - 0.15, 1.6);
     rock.rotation.y = 0.5;
     s.group.add(rock);
     const strings = await ctx.make('shell_strings');
-    strings.position.set(0, (rock.userData.top ?? 0.62), 0);
+    strings.position.set(0, top + 0.005, 0);
     rock.add(strings);
     const t1 = tag('Shell strings'); t1.position.set(0, 1.5, 0); rock.add(t1); // high enough not to hide them
 

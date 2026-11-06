@@ -789,7 +789,6 @@ export function buildLakeRock() {
   }
   g.computeVertexNormals();
   root.add(new THREE.Mesh(g, mat('#8f8b84', { flatShading: true, roughness: 0.95 })));
-  root.userData.top = 0.84;
   return shadowed(root);
 }
 
